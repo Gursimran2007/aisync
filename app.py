@@ -185,11 +185,18 @@ def inject_css():
       h4 { letter-spacing:-.015em; font-weight:600; }
 
       .appbar{
+        position:relative;
         display:flex; align-items:center; gap:22px;
         padding:10px 0 26px; margin-bottom:30px;
-        border-bottom:1px solid var(--hair);
         animation:ssRise .45s var(--ease) both;
         perspective:1100px; perspective-origin:30% 40%;
+      }
+      /* soft gradient divider that fades out at both edges + faint drop shadow */
+      .appbar::after{
+        content:""; position:absolute; left:0; right:0; bottom:0; height:1px;
+        background:linear-gradient(90deg, transparent 0%,
+                   rgba(31,78,121,.28) 22%, rgba(31,78,121,.28) 78%, transparent 100%);
+        box-shadow:0 6px 14px -8px rgba(20,27,38,.22);
       }
       .appbar .logo{
         width:62px; height:62px; border-radius:18px; flex:0 0 62px;
@@ -231,7 +238,9 @@ def inject_css():
         font-family:var(--display);
         font-size:clamp(1.9rem,1.5rem + 1.3vw,2.5rem); font-weight:700;
         line-height:1.0; letter-spacing:-.035em;
-        background:linear-gradient(96deg, #0E2A45 0%, var(--accent) 42%, #2E6DA8 78%);
+        /* dark-blue -> mid-blue gradient that echoes the logo icon */
+        background:linear-gradient(96deg, #0B2540 0%, #17436E 38%,
+                   var(--accent) 66%, #2E6DA8 100%);
         -webkit-background-clip:text; background-clip:text;
         -webkit-text-fill-color:transparent; color:var(--accent);
       }
@@ -240,8 +249,9 @@ def inject_css():
         font-size:.9rem; font-weight:600; vertical-align:super;
         margin-left:2px; letter-spacing:0;
       }
-      .appbar .brand-sub{ font-size:.95rem; color:var(--muted); margin-top:2px;
-        letter-spacing:.005em; max-width:62ch; }
+      /* crisper subtitle: darker ink + roomier line-height for readability */
+      .appbar .brand-sub{ font-size:.96rem; color:#4A5563; margin-top:3px;
+        line-height:1.5; letter-spacing:.004em; max-width:62ch; }
 
       [data-testid="stMetric"]{
         background:var(--glass);
@@ -306,6 +316,16 @@ def inject_css():
       [data-testid="stFormSubmitButton"]>button[kind="primary"]:hover{
         background:var(--accent-2); border-color:var(--accent-2);
       }
+      /* Reset workspace = destructive ghost: quiet grey outline that turns
+         red on hover to signal it wipes data. */
+      .st-key-btn_reset_ws button{
+        background:transparent; border:1px solid var(--border);
+        color:var(--muted); box-shadow:none;
+      }
+      .st-key-btn_reset_ws button:hover{
+        background:#FCEDEA; border-color:#E0A99B; color:#B4351F;
+        transform:none; box-shadow:none;
+      }
 
       [data-testid="stSidebar"]{ background:var(--surface); border-right:1px solid var(--border); }
       [data-testid="stSidebar"] .nav-head{
@@ -317,21 +337,44 @@ def inject_css():
         display:flex; align-items:center; width:100%; border-radius:12px;
         padding:9px 14px; margin:0; line-height:1.2;
         cursor:pointer; font-weight:500; font-size:.92rem; color:var(--muted);
-        transition:background .24s var(--apple), color .24s var(--apple),
-                   transform .24s var(--spring);
+        border-left:4px solid transparent;
+        transition:background .2s var(--apple), color .2s var(--apple),
+                   border-color .2s var(--apple), transform .24s var(--spring);
       }
       [data-testid="stSidebar"] [role="radiogroup"] label p{ margin:0; }
+      /* clean minimalist line-icons (Lucide/Feather), one per menu item.
+         Rendered as a CSS mask so the glyph inherits the label's text colour —
+         muted when idle, accent when hovered or active. */
+      [data-testid="stSidebar"] [role="radiogroup"] label::before{
+        content:""; flex:0 0 18px; width:18px; height:18px; margin-right:11px;
+        background-color:currentColor;
+        -webkit-mask:var(--ic) center/contain no-repeat;
+        mask:var(--ic) center/contain no-repeat;
+        opacity:.85; transition:opacity .2s var(--apple);
+      }
+      /* smooth pale-blue wash on hover for inactive items */
       [data-testid="stSidebar"] [role="radiogroup"] label:hover{
-        background:var(--hair); color:var(--text); }
+        background:#F0F5FB; color:var(--accent-2); }
+      [data-testid="stSidebar"] [role="radiogroup"] label:hover::before{ opacity:1; }
+      /* active: soft blue tint + bold blue left-border accent (border-l-4) */
       [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked){
-        background:var(--glass-strong);
-        -webkit-backdrop-filter:blur(14px) saturate(180%);
-        backdrop-filter:blur(14px) saturate(180%);
-        box-shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 2px 8px rgba(20,27,38,.08);
+        background:var(--accent-soft); border-left-color:var(--accent);
+        box-shadow:0 1px 2px rgba(20,27,38,.05);
         color:var(--accent); font-weight:600;
       }
       [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) p{ color:var(--accent); font-weight:600; }
+      [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked)::before{ opacity:1; }
       [data-testid="stSidebar"] [role="radiogroup"] label > div:first-child{ display:none; }
+      /* per-item icon assignments (order matches the NAV dict) */
+      [data-testid="stSidebar"] [role="radiogroup"] label:nth-of-type(1){ --ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='7' height='9'/%3E%3Crect x='14' y='3' width='7' height='5'/%3E%3Crect x='14' y='12' width='7' height='9'/%3E%3Crect x='3' y='16' width='7' height='5'/%3E%3C/svg%3E"); }
+      [data-testid="stSidebar"] [role="radiogroup"] label:nth-of-type(2){ --ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='4' width='20' height='5' rx='1'/%3E%3Cpath d='M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9'/%3E%3Cpath d='M10 13h4'/%3E%3C/svg%3E"); }
+      [data-testid="stSidebar"] [role="radiogroup"] label:nth-of-type(3){ --ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='22 7 13.5 15.5 8.5 10.5 2 17'/%3E%3Cpolyline points='16 7 22 7 22 13'/%3E%3C/svg%3E"); }
+      [data-testid="stSidebar"] [role="radiogroup"] label:nth-of-type(4){ --ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='4' y1='21' x2='4' y2='14'/%3E%3Cline x1='4' y1='10' x2='4' y2='3'/%3E%3Cline x1='12' y1='21' x2='12' y2='12'/%3E%3Cline x1='12' y1='8' x2='12' y2='3'/%3E%3Cline x1='20' y1='21' x2='20' y2='16'/%3E%3Cline x1='20' y1='12' x2='20' y2='3'/%3E%3Cline x1='1' y1='14' x2='7' y2='14'/%3E%3Cline x1='9' y1='8' x2='15' y2='8'/%3E%3Cline x1='17' y1='16' x2='23' y2='16'/%3E%3C/svg%3E"); }
+      [data-testid="stSidebar"] [role="radiogroup"] label:nth-of-type(5){ --ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='22 12 18 12 15 21 9 3 6 12 2 12'/%3E%3C/svg%3E"); }
+      [data-testid="stSidebar"] [role="radiogroup"] label:nth-of-type(6){ --ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='5' rx='9' ry='3'/%3E%3Cpath d='M3 5v14a9 3 0 0 0 18 0V5'/%3E%3Cpath d='M3 12a9 3 0 0 0 18 0'/%3E%3C/svg%3E"); }
+      [data-testid="stSidebar"] [role="radiogroup"] label:nth-of-type(7){ --ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 1 1 21 11.5z'/%3E%3C/svg%3E"); }
+      [data-testid="stSidebar"] [role="radiogroup"] label:nth-of-type(8){ --ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6'/%3E%3Cline x1='8' y1='2' x2='8' y2='18'/%3E%3Cline x1='16' y1='6' x2='16' y2='22'/%3E%3C/svg%3E"); }
+      [data-testid="stSidebar"] [role="radiogroup"] label:nth-of-type(9){ --ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z'/%3E%3Cpath d='M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z'/%3E%3C/svg%3E"); }
 
       [data-testid="stExpander"]{
         border:1px solid var(--border); border-radius:var(--radius);
@@ -695,7 +738,8 @@ with st.sidebar:
                      visitor=_visitor_id(), detail=NAV[page])
         st.session_state["_last_page"] = page
     st.divider()
-    if st.button("Load HPL demo data", use_container_width=True):
+    if st.button("Load HPL demo data", use_container_width=True,
+                 type="primary", key="btn_load_demo"):
         seed_db(); st.session_state.pop("imported_file", None); st.rerun()
 
     if st.session_state.get("confirm_reset"):
@@ -709,7 +753,8 @@ with st.sidebar:
         if cc[1].button("Cancel", use_container_width=True):
             st.session_state.pop("confirm_reset", None); st.rerun()
     else:
-        if st.button("Reset workspace", use_container_width=True):
+        if st.button("Reset workspace", use_container_width=True,
+                     key="btn_reset_ws"):
             st.session_state["confirm_reset"] = True; st.rerun()
 
     st.divider()
