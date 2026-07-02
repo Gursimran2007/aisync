@@ -1,0 +1,23 @@
+# Render blueprint — deploy StockSense on a host that allows a free custom
+# domain (Streamlit Community Cloud does not). Push this repo, then on
+# render.com: New > Blueprint > pick this repo. Add your domain under
+# Settings > Custom Domains and point its DNS as Render instructs.
+services:
+  - type: web
+    name: stocksense
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.4"
+      # Persist data in a free hosted Turso (libSQL) database so nothing is
+      # lost when the free host restarts. Create a DB at turso.tech (no card),
+      # then set these two in the Render dashboard (Environment tab). Leave
+      # them blank and the app falls back to a local file (demo only — wiped
+      # on restart).
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false

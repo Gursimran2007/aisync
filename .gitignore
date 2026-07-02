@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+inventory.db
+data/
+demo_messy.xlsx
+.streamlit/secrets.toml
+inbox/
+reports/
+state.json
+automation.json
+*.log
