@@ -161,7 +161,9 @@ def inject_css():
       .block-container { padding-top:2.8rem; max-width:1240px; }
       /* vertical rhythm — Apple-style generous gap between stacked blocks */
       .main .block-container > div > div > [data-testid="stVerticalBlock"]{ gap:1.6rem; }
-      [data-testid="stHorizontalBlock"]{ gap:1.4rem; }
+      /* keep the horizontal gap at 1rem — Streamlit's column flex-basis is
+         calc(25% - 16px), so a wider gap overflows and wraps the 4th card */
+      [data-testid="stHorizontalBlock"]{ gap:1rem; }
       h1,h2,h3 { font-family:var(--display); letter-spacing:-.022em; font-weight:600; }
       h4 { letter-spacing:-.015em; font-weight:600; }
 
@@ -232,11 +234,13 @@ def inject_css():
         border-color:rgba(255,255,255,.85);
       }
       [data-testid="stMetricLabel"] p{
-        font-size:.7rem !important; font-weight:600; letter-spacing:.07em;
-        text-transform:uppercase; color:var(--muted);
+        font-size:.78rem !important; font-weight:700; letter-spacing:.055em;
+        text-transform:uppercase; color:#3D4550;
       }
       [data-testid="stMetricValue"]{ font-weight:680;
         font-size:clamp(1.5rem,1.2rem + .9vw,1.9rem); letter-spacing:-.02em; }
+      [data-testid="stMetricDelta"]{ font-size:.8rem; font-weight:650; gap:2px; }
+      [data-testid="stMetricDelta"] svg{ height:1em; width:1em; }
 
       .stButton>button, .stDownloadButton>button, .stLinkButton>a,
       [data-testid="stFormSubmitButton"]>button{
@@ -269,11 +273,13 @@ def inject_css():
       }
       [data-testid="stSidebar"] [role="radiogroup"]{ gap:3px; }
       [data-testid="stSidebar"] [role="radiogroup"] label{
-        display:flex; width:100%; border-radius:12px; padding:9px 14px; margin:0;
+        display:flex; align-items:center; width:100%; border-radius:12px;
+        padding:9px 14px; margin:0; line-height:1.2;
         cursor:pointer; font-weight:500; font-size:.92rem; color:var(--muted);
         transition:background .24s var(--apple), color .24s var(--apple),
                    transform .24s var(--spring);
       }
+      [data-testid="stSidebar"] [role="radiogroup"] label p{ margin:0; }
       [data-testid="stSidebar"] [role="radiogroup"] label:hover{
         background:var(--hair); color:var(--text); }
       [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked){
@@ -365,7 +371,7 @@ def inject_css():
       }
 
       /* manager action band — the "what do I do this week" headline */
-      .brief{ position:relative; overflow:hidden; margin:2px 0 18px;
+      .brief{ position:relative; overflow:hidden; margin:2px 0 28px;
         border:1px solid #CFE0F0; border-radius:16px; padding:20px 24px;
         background:linear-gradient(120deg, #F3F8FD 0%, #EAF2FB 55%, #E4EEF9 100%);
         box-shadow:var(--shadow-sm); animation:ssFadeUp .55s var(--ease) both; }
@@ -374,14 +380,19 @@ def inject_css():
       .brief::after{ content:""; position:absolute; top:0; left:0; width:40%; height:100%;
         background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
         animation:ssShine 7s var(--ease) 1s infinite; }
-      .brief .eyebrow{ font-size:.7rem; font-weight:700; letter-spacing:.1em;
+      .brief .eyebrow{ font-size:.72rem; font-weight:800; letter-spacing:.12em;
         text-transform:uppercase; color:var(--accent-2); }
-      .brief h3{ margin:.28rem 0 .5rem; font-size:1.22rem; color:#12314E; }
+      .brief h3{ margin:.34rem 0 .6rem; font-size:1.34rem; font-weight:700;
+        letter-spacing:-.012em; color:#0E2A45; }
       .brief .brief-actions{ display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
       .brief .chip{ display:inline-flex; align-items:center; gap:6px;
         background:#fff; border:1px solid #D3E2F1; border-radius:999px;
         padding:5px 12px; font-size:.82rem; font-weight:550; color:#22354A;
-        box-shadow:var(--shadow-sm); animation:ssPop .5s var(--spring) both; }
+        box-shadow:var(--shadow-sm); animation:ssPop .5s var(--spring) both;
+        transition:border-color .16s var(--ease), background .16s var(--ease),
+                   transform .16s var(--ease), box-shadow .16s var(--ease); }
+      .brief .chip:hover{ border-color:#B7CEEA; background:#F7FAFE;
+        transform:translateY(-1px); box-shadow:var(--shadow-md); }
       .brief .chip b{ color:var(--accent); }
 
       /* roadmap phases with a connecting flow spine */
