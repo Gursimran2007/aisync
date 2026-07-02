@@ -1,10 +1,10 @@
-# Render blueprint — deploy StockSense on a host that allows a free custom
-# domain (Streamlit Community Cloud does not). Push this repo, then on
-# render.com: New > Blueprint > pick this repo. Add your domain under
-# Settings > Custom Domains and point its DNS as Render instructs.
+# Render blueprint — deploy AISync on a host that allows a free custom domain
+# (Streamlit Community Cloud does not). Push this repo, then on render.com:
+# New > Blueprint > pick this repo. Add your domain under Settings > Custom
+# Domains and point its DNS as Render instructs.
 services:
   - type: web
-    name: stocksense
+    name: aisync
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
