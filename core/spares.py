@@ -407,6 +407,57 @@ def build_facts(rows=None, db_path=None):
             f"safe level — reorder these first to avoid a shutdown."),
     })
 
+    # monthly maintenance run-rate (value of spares drawn to maintenance).
+    # Insurance and obsolete stock are excluded: strategic insurance spares are
+    # held against a single catastrophic failure, not consumed monthly, and
+    # dead stock isn't moving — counting either would inflate the run-rate.
+    month_spend = sum(float(r["reorder"]["daily_rate"] or 0) * 30.0
+                      * float(r["unit_cost"] or 0) for r in rows
+                      if not r.get("insurance") and not r.get("obsolete"))
+    if month_spend > 0:
+        mo = cr(month_spend) if month_spend >= 1e7 else lakh(month_spend)
+        cards.append({
+            "keywords": "maintenance cost month monthly spend budget consumption "
+                        "expense burn this month spares expenditure run rate opex "
+                        "outgoing how much draw usage value cash per month",
+            "answer": (
+                f"At the current consumption pace, spares drawn to maintenance run "
+                f"about **{mo}/month** ({cr(month_spend * 12)}/year) — excluding "
+                f"strategic insurance and dead stock. This is a run-rate: each "
+                f"spare's AI-forecast daily issue rate x its unit cost, summed "
+                f"across the active plant inventory."),
+        })
+
+    exc = excess_rows(rows)
+    if exc:
+        top_x = ", ".join(f"{r['name'] or r['sku']}" for r in exc[:4])
+        cards.append({
+            "keywords": "excess overstock surplus too much above optimal trim "
+                        "reduce levels excess stock overstocked non-critical draw "
+                        "down safe release from excess",
+            "answer": (
+                f"**{cr(pf['excess_value'])}** sits in {len(exc)} line(s) above "
+                f"AISync's optimal stock level — led by **{top_x}**. These are "
+                f"only non-critical/essential spares (never critical or insurance), "
+                f"so they're safe to draw down before the next purchase cycle."),
+        })
+
+    pdm = predictive_maintenance(rows)
+    if pdm:
+        pnames = ", ".join(f"{r['name'] or r['sku']}" for r in pdm[:3])
+        t = pdm[0]
+        cards.append({
+            "keywords": "predictive maintenance failure breakdown equipment about "
+                        "to fail failing accelerating consumption early warning "
+                        "which machine trend momentum rising draw risk signal",
+            "answer": (
+                f"{len(pdm)} spare(s) show accelerating consumption — an early sign "
+                f"the equipment they serve may be heading toward failure: "
+                f"**{pnames}**. Strongest signal: {t['name'] or t['sku']} at "
+                f"{t['trend_pct_month']:+.0f}%/month ({t['momentum_pct']:+.0f}%/week). "
+                f"Stage the spare and inspect before the next shutdown."),
+        })
+
     need = reorder_rows(rows)
     if need:
         top = ", ".join(f"{r['name'] or r['sku']} ({int(r['reco_qty'])})"
@@ -414,7 +465,8 @@ def build_facts(rows=None, db_path=None):
         spend = sum(r['reco_qty'] * r['unit_cost'] for r in need)
         cards.append({
             "keywords": "reorder restock buy replenish order what need procure "
-                        "purchase running low safety stock",
+                        "purchase running low safety stock first priority "
+                        "shutdown risk critical replenishment",
             "answer": (
                 f"{len(need)} spare(s) need replenishment. Highest shutdown-risk "
                 f"first: **{top}**. Estimated procurement value: {cr(spend)}."),

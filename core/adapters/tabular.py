@@ -37,8 +37,11 @@ class TabularAdapter(Adapter):
     name = "tabular"
 
     def read(self, file_or_path) -> pd.DataFrame:
-        """Accepts path, bytes, or file-like. Sniffs csv vs excel."""
+        """Accepts path, bytes, or file-like. Sniffs csv vs excel vs pdf."""
         if isinstance(file_or_path, (bytes, bytearray)):
+            head = bytes(file_or_path[:5])
+            if head.startswith(b"%PDF"):
+                return self._read_pdf(io.BytesIO(file_or_path))
             buf = io.BytesIO(file_or_path)
             try:
                 return pd.read_excel(buf)
@@ -46,9 +49,66 @@ class TabularAdapter(Adapter):
                 buf.seek(0)
                 return pd.read_csv(buf)
         name = getattr(file_or_path, "name", str(file_or_path)).lower()
+        if name.endswith(".pdf"):
+            return self._read_pdf(file_or_path)
         if name.endswith((".xlsx", ".xls", ".xlsm")):
             return pd.read_excel(file_or_path)
         return pd.read_csv(file_or_path)
+
+    @staticmethod
+    def _read_pdf(file_or_path) -> pd.DataFrame:
+        """Pull the largest table out of a PDF stock/issue report.
+
+        Plant PDFs (SAP MB52 dumps, stores registers) are tabular. We take the
+        widest table on each page, use its first row as the header, and stack
+        the pages into one DataFrame so the same auto-mapping path applies."""
+        try:
+            import pdfplumber
+        except ImportError as e:
+            raise RuntimeError(
+                "Reading PDFs needs the 'pdfplumber' package. Add it to "
+                "requirements.txt (already listed) or `pip install pdfplumber`, "
+                "or upload an Excel/CSV export instead.") from e
+
+        # Ruled tables extract cleanly with the default (line) strategy; many
+        # SAP/stores PDFs have no ruling lines, so fall back to whitespace-
+        # aligned text columns.
+        _text_settings = {"vertical_strategy": "text",
+                          "horizontal_strategy": "text",
+                          "snap_y_tolerance": 6, "join_x_tolerance": 12}
+
+        def _page_tables(page):
+            t = page.extract_tables() or []
+            return t or (page.extract_tables(_text_settings) or [])
+
+        frames = []
+        header = None
+        with pdfplumber.open(file_or_path) as pdf:
+            for page in pdf.pages:
+                tables = _page_tables(page)
+                if not tables:
+                    continue
+                tbl = max(tables, key=lambda t: len(t[0]) if t else 0)
+                tbl = [r for r in tbl if any((c or "").strip() for c in r)]
+                if len(tbl) < 2:
+                    continue
+                first = [(_c or "").strip() for _c in tbl[0]]
+                if header is None:
+                    header = [c or f"col{i}" for i, c in enumerate(first)]
+                    body = tbl[1:]
+                else:
+                    # subsequent pages: drop the row only if it repeats the header
+                    body = tbl[1:] if first == header else tbl
+                width = len(header)
+                rows = [(r + [None] * width)[:width] for r in body]
+                frames.append(pd.DataFrame(rows, columns=header))
+
+        if not frames:
+            raise RuntimeError(
+                "No table found in that PDF. Make sure it's a stock/issue "
+                "report with columns (not a scanned image), or upload the "
+                "Excel/CSV export instead.")
+        return pd.concat(frames, ignore_index=True)
 
     def suggest_mapping(self, df, fields=None):
         return detect_mapping(df, fields)

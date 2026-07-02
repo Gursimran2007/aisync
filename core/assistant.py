@@ -1,14 +1,15 @@
-"""Grounded business Q&A assistant ("Ask StockSense").
+"""Grounded Q&A assistant ("Ask AISync").
 
-Answers plain-language questions about sales projections, profit margins,
-best/worst sellers, dead stock and reorder needs.
+Provides the TF-IDF retrieval engine. The spare-domain fact cards it ranks
+over are built in ``core.spares.build_facts`` (blocked capital, obsolete
+stock, reorder needs, maintenance spend, per-spare forecasts). The retail
+fact cards below are the legacy StockSense set, kept only for that app.
 
 Design choice: this is a *grounded retrieval* assistant, NOT an LLM wrapper.
-Every number it says is COMPUTED from the shop's real data (sales velocity,
-unit cost, selling price). It builds a set of "fact cards" from the live
-report, indexes them with a from-scratch TF-IDF model, and returns the
-card(s) most relevant to the question. That means it can never hallucinate a
-margin or a projection — if the data isn't there, it says so.
+Every number it says is COMPUTED from the plant's real data. It indexes a set
+of "fact cards" with a from-scratch TF-IDF model and returns the card(s) most
+relevant to the question, so it can never hallucinate a figure — if the data
+isn't there, it says so.
 """
 from __future__ import annotations
 import math
@@ -209,14 +210,15 @@ def answer(question: str, db_path=None, cards=None) -> str:
     when the caller caches facts across questions."""
     q = (question or "").strip()
     if not q:
-        return "Ask me about your sales projection, profit margins, best "\
-               "sellers or what to restock."
+        return ("Ask me about blocked working capital, obsolete or dead stock, "
+                "what to reorder first, this month's maintenance spend, or the "
+                "forecast for any spare.")
 
     if cards is None:
         cards = build_facts(db_path)
     if not cards:
-        return ("I don't have enough data yet. Add some products with selling "
-                "prices and record a few sales, then ask me again.")
+        return ("I don't have enough data yet. Load your spare master (or the "
+                "HPL demo data) and I'll answer from the plant's own numbers.")
 
     qtoks = set(_tok(q))
     # Does the question name a specific product? If so, keep that product's
@@ -235,9 +237,10 @@ def answer(question: str, db_path=None, cards=None) -> str:
     top_score = ranked[0][0]
 
     if top_score <= 0:
-        return ("I couldn't match that to your data. Try asking about your "
-                "yearly sales projection, profit margins, best sellers, dead "
-                "stock, or what to restock.")
+        return ("I couldn't match that to the plant's data yet. Try asking about "
+                "blocked working capital, obsolete or dead stock, what to reorder "
+                "first, this month's maintenance spend, spares putting you at "
+                "shutdown risk, or the forecast for a specific spare.")
 
     # Return the single best-matching card — one focused answer per question.
     return pool[ranked[0][1]]["answer"]

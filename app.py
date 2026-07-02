@@ -44,22 +44,30 @@ _init_auth()
 # AI core and an orbiting node — a quiet motion-of-flow motif (SMIL animates
 # even when injected as innerHTML, so it runs without external JS).
 LOGO_MARK = (
-    "<svg width='24' height='24' viewBox='0 0 32 32' fill='none' "
-    "xmlns='http://www.w3.org/2000/svg'>"
-    "<path d='M16 3 27 9.5V22.5L16 29 5 22.5V9.5L16 3Z' "
-    "stroke='#fff' stroke-opacity='.45' stroke-width='1.5' fill='none'/>"
-    "<g stroke='#fff' stroke-width='2' stroke-linecap='round' fill='none' "
-    "stroke-opacity='.92'>"
-    "<path d='M16 8.5A7.5 7.5 0 0 1 23.5 16'/>"
-    "<path d='M16 23.5A7.5 7.5 0 0 1 8.5 16'/>"
-    "</g>"
-    "<circle cx='16' cy='16' r='3' fill='#fff'>"
-    "<animate attributeName='r' values='2.7;3.5;2.7' dur='2.6s' "
+    "<svg width='34' height='34' viewBox='0 0 40 40' fill='none' "
+    "xmlns='http://www.w3.org/2000/svg' role='img' aria-label='AISync'>"
+    "<defs>"
+    "<linearGradient id='asStroke' x1='0' y1='0' x2='40' y2='40' "
+    "gradientUnits='userSpaceOnUse'>"
+    "<stop offset='0' stop-color='#EAF3FF'/>"
+    "<stop offset='1' stop-color='#BFE0FF'/></linearGradient></defs>"
+    # hexagon frame — the plant / containment (centered at 20,20)
+    "<path d='M20 3.75 33.75 11.875V28.125L20 36.25 6.25 28.125V11.875Z' "
+    "stroke='#fff' stroke-opacity='.32' stroke-width='1.6' fill='none'/>"
+    # two interlocking sync arcs — a closed optimization loop around the core
+    "<g stroke='url(#asStroke)' stroke-width='2.6' stroke-linecap='round' "
+    "fill='none'>"
+    "<path d='M20 10.6A9.4 9.4 0 0 1 29.4 20'/>"
+    "<path d='M20 29.4A9.4 9.4 0 0 1 10.6 20'/></g>"
+    # directional heads that make the loop read as continuous flow
+    "<path d='M29.4 20 26.9 16.1 31.3 16.6Z' fill='#fff'/>"
+    "<path d='M10.6 20 13.1 23.9 8.7 23.4Z' fill='#fff'/>"
+    # pulsing core = the live signal
+    "<circle cx='20' cy='20' r='3.5' fill='#fff'>"
+    "<animate attributeName='r' values='3.1;4.1;3.1' dur='2.8s' "
+    "repeatCount='indefinite'/>"
+    "<animate attributeName='fill-opacity' values='1;.72;1' dur='2.8s' "
     "repeatCount='indefinite'/></circle>"
-    "<g><animateTransform attributeName='transform' type='rotate' "
-    "from='0 16 16' to='360 16 16' dur='9s' repeatCount='indefinite'/>"
-    "<circle cx='16' cy='6' r='1.8' fill='#fff'/>"
-    "<circle cx='16' cy='26' r='1.8' fill='#fff' fill-opacity='.8'/></g>"
     "</svg>"
 )
 
@@ -141,36 +149,51 @@ def inject_css():
       h4 { letter-spacing:-.015em; font-weight:600; }
 
       .appbar{
-        display:flex; align-items:center; gap:15px;
-        padding:0 0 16px; margin-bottom:18px; border-bottom:1px solid var(--border);
+        display:flex; align-items:center; gap:18px;
+        padding:2px 0 20px; margin-bottom:22px;
+        border-bottom:1px solid var(--border);
+        animation:ssRise .45s var(--ease) both;
       }
       .appbar .logo{
-        width:46px; height:46px; border-radius:14px; flex:0 0 46px;
+        width:62px; height:62px; border-radius:18px; flex:0 0 62px;
         position:relative; overflow:hidden;
-        background:linear-gradient(145deg, #3E86C7 0%, var(--accent) 52%, #12314E 100%);
+        background:
+          radial-gradient(120% 120% at 25% 15%, #4C93D4 0%, transparent 60%),
+          linear-gradient(150deg, #2E6DA8 0%, var(--accent) 46%, #0E2A45 100%);
         display:flex; align-items:center; justify-content:center;
-        box-shadow:0 6px 18px rgba(31,78,121,.36),
-                   inset 0 1px 0 rgba(255,255,255,.28),
-                   inset 0 -3px 8px rgba(0,0,0,.16);
-        transition:transform .3s var(--spring), box-shadow .3s var(--ease);
+        box-shadow:0 10px 26px rgba(31,78,121,.40),
+                   0 2px 6px rgba(20,27,38,.18),
+                   inset 0 1px 0 rgba(255,255,255,.34),
+                   inset 0 -4px 10px rgba(0,0,0,.20);
+        transition:transform .35s var(--spring), box-shadow .35s var(--ease);
+      }
+      .appbar .logo::before{
+        content:""; position:absolute; inset:0;
+        background:radial-gradient(70% 55% at 50% 120%, rgba(76,147,212,.55), transparent 70%);
       }
       .appbar .logo::after{
-        content:""; position:absolute; top:0; left:0; width:45%; height:100%;
-        background:linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
-        animation:ssShine 5.5s var(--ease) 1.2s infinite;
+        content:""; position:absolute; top:0; left:-20%; width:45%; height:100%;
+        background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+        animation:ssShine 6s var(--ease) 1.4s infinite;
       }
-      .appbar .logo:hover{ transform:translateY(-2px) scale(1.05) rotate(-3deg);
+      .appbar .logo:hover{ transform:translateY(-3px) scale(1.06) rotate(-3deg);
         box-shadow:var(--shadow-lg); }
       .appbar .logo svg{ display:block; position:relative; z-index:1; }
+      .appbar .brand-wrap{ display:flex; flex-direction:column; gap:2px; }
       .appbar .brand-name{
-        font-family:var(--display); font-size:1.5rem; font-weight:700;
-        line-height:1.05; letter-spacing:-.02em;
-        background:linear-gradient(92deg, #12314E 0%, var(--accent) 45%, #2C6699 100%);
+        font-family:var(--display); font-size:2.15rem; font-weight:700;
+        line-height:1.02; letter-spacing:-.03em;
+        background:linear-gradient(96deg, #0E2A45 0%, var(--accent) 42%, #2E6DA8 78%);
         -webkit-background-clip:text; background-clip:text;
         -webkit-text-fill-color:transparent; color:var(--accent);
       }
-      .appbar .brand-sub{ font-size:.86rem; color:var(--muted); margin-top:3px;
-        letter-spacing:.005em; }
+      .appbar .brand-name .tm{
+        -webkit-text-fill-color:var(--muted); color:var(--muted);
+        font-size:.9rem; font-weight:600; vertical-align:super;
+        margin-left:2px; letter-spacing:0;
+      }
+      .appbar .brand-sub{ font-size:.95rem; color:var(--muted); margin-top:2px;
+        letter-spacing:.005em; max-width:62ch; }
 
       [data-testid="stMetric"]{
         background:var(--surface); border:1px solid var(--border);
@@ -252,13 +275,61 @@ def inject_css():
         margin-bottom:10px; }
       .card h4{ margin:.1rem 0 .3rem; }
       .pill{ display:inline-block; padding:2px 9px; border-radius:20px;
-        font-size:.72rem; font-weight:600; letter-spacing:.02em; }
+        font-size:.72rem; font-weight:600; letter-spacing:.02em;
+        white-space:nowrap; }
       .pill-crit{ background:#FBE7E1; color:#B4543A; }
       .pill-ess{ background:#FDF3DF; color:#9A7420; }
       .pill-non{ background:#E7EFF7; color:#2C6699; }
+      /* status palette — muted, readable, WCAG-AA on white, never neon */
+      .pill-ok{ background:#E6F1EA; color:#356045; }
+      .pill-warn{ background:#FBF0D9; color:#845F16; }
+      .pill-danger{ background:#F7E2DC; color:#9C3F2A; }
+      .pill-info{ background:#E4EEF9; color:#255E92; }
+      .pill-neutral{ background:#EDF1F6; color:#54626F; }
+      .pill .pdot{ width:6px; height:6px; border-radius:50%; display:inline-block;
+        margin-right:5px; vertical-align:middle; background:currentColor; }
 
       .card:hover{ box-shadow:var(--shadow-md); transform:translateY(-1px); }
       .card{ transition:transform .2s var(--ease), box-shadow .2s var(--ease); }
+
+      /* ---- premium read-only data table (sticky header, zebra, hover) ---- */
+      .ptable-wrap{ border:1px solid var(--border); border-radius:var(--radius);
+        overflow:auto; max-height:540px; background:var(--surface);
+        box-shadow:var(--shadow-sm); margin-bottom:12px;
+        animation:ssFadeUp .5s var(--ease) both; }
+      .ptable{ width:100%; border-collapse:separate; border-spacing:0;
+        font-size:.9rem; }
+      .ptable thead th{ position:sticky; top:0; z-index:2; background:#F6FAFE;
+        text-align:left; color:var(--muted); font-size:.7rem; font-weight:700;
+        letter-spacing:.05em; text-transform:uppercase; padding:11px 14px;
+        border-bottom:1px solid var(--border); white-space:nowrap; }
+      .ptable tbody td{ padding:10px 14px; border-bottom:1px solid var(--border-2);
+        color:var(--text); vertical-align:middle; }
+      .ptable tbody tr{ transition:background .12s var(--ease); }
+      .ptable tbody tr:nth-child(even){ background:#FAFCFE; }
+      .ptable tbody tr:hover{ background:var(--accent-soft); }
+      .ptable tbody tr:last-child td{ border-bottom:none; }
+      .ptable td.num, .ptable th.num{ text-align:right; white-space:nowrap;
+        font-variant-numeric:tabular-nums; font-feature-settings:"tnum"; }
+      .ptable td:first-child{ font-weight:600; color:#1B2733; }
+
+      /* tabular figures everywhere numbers matter -> columns line up */
+      [data-testid="stMetricValue"]{ font-variant-numeric:tabular-nums;
+        font-feature-settings:"tnum"; }
+
+      /* ---- responsive: tablet on the floor vs desktop in the office ---- */
+      @media (max-width:1024px){
+        .block-container{ padding-left:1.1rem; padding-right:1.1rem; }
+        .appbar .logo{ width:54px; height:54px; flex:0 0 54px; }
+        .appbar .brand-name{ font-size:1.85rem; }
+        [data-testid="stMetricValue"]{ font-size:1.42rem; }
+        .ptable{ font-size:.85rem; }
+        .ptable thead th, .ptable tbody td{ padding:9px 11px; }
+      }
+      @media (max-width:680px){
+        .appbar .brand-sub{ display:none; }
+        .brief{ padding:16px; } .brief h3{ font-size:1.08rem; }
+      }
 
       /* manager action band — the "what do I do this week" headline */
       .brief{ position:relative; overflow:hidden; margin:2px 0 18px;
@@ -348,6 +419,52 @@ def _esc(s):
     return html.escape(str(s if s is not None else ""))
 
 
+class _Raw(str):
+    """Marker: a table cell whose contents are already safe HTML (e.g. a pill)."""
+
+
+def _pill(text, kind="neutral", dot=False):
+    d = "<span class='pdot'></span>" if dot else ""
+    return _Raw(f"<span class='pill pill-{kind}'>{d}{_esc(text)}</span>")
+
+
+_RISK_KIND = {"high": "danger", "medium": "warn", "low": "ok"}
+
+
+def _risk_pill(risk):
+    return _pill(str(risk).title(), _RISK_KIND.get(risk, "neutral"), dot=True)
+
+
+def _crit_pill_tbl(crit):
+    kind = {"critical": "danger", "essential": "warn",
+            "non-critical": "info"}.get(crit, "neutral")
+    return _pill(crit, kind)
+
+
+def _table(headers, rows, num_cols=()):
+    """Render a premium read-only HTML table (sticky header, zebra, hover).
+
+    `rows` is a list of cell sequences; a cell that is a _Raw is emitted as-is
+    (for pills), everything else is HTML-escaped. `num_cols` = column indices to
+    right-align with tabular figures."""
+    num = set(num_cols)
+    head = "".join(
+        f"<th class='num'>{_esc(h)}</th>" if i in num else f"<th>{_esc(h)}</th>"
+        for i, h in enumerate(headers))
+    body = []
+    for r in rows:
+        tds = []
+        for i, c in enumerate(r):
+            cell = c if isinstance(c, _Raw) else _esc(c)
+            tds.append(f"<td class='num'>{cell}</td>" if i in num
+                       else f"<td>{cell}</td>")
+        body.append("<tr>" + "".join(tds) + "</tr>")
+    st.markdown(
+        f"<div class='ptable-wrap'><table class='ptable'>"
+        f"<thead><tr>{head}</tr></thead><tbody>{''.join(body)}</tbody>"
+        f"</table></div>", unsafe_allow_html=True)
+
+
 def _sku_from_name(name, taken):
     import re
     base = re.sub(r"[^A-Za-z0-9]+", "-", (name or "").strip().upper()).strip("-")
@@ -370,7 +487,8 @@ def _activate_plant(user):
 def _render_login():
     st.markdown(
         f"<div class='appbar'><div class='logo'>{LOGO_MARK}</div>"
-        "<div><div class='brand-name'>AISync</div>"
+        "<div class='brand-wrap'><div class='brand-name'>AISync"
+        "<span class='tm'>&trade;</span></div>"
         "<div class='brand-sub'>Sign in to your plant workspace</div></div></div>",
         unsafe_allow_html=True)
     st.caption("AI-Based Spare Inventory Optimization Model — Haldia Petrochemicals")
@@ -514,7 +632,8 @@ with st.sidebar:
 
 st.markdown(
     f"<div class='appbar'><div class='logo'>{LOGO_MARK}</div>"
-    "<div><div class='brand-name'>AISync</div>"
+    "<div class='brand-wrap'><div class='brand-name'>AISync"
+    "<span class='tm'>&trade;</span></div>"
     f"<div class='brand-sub'>{_esc(TAGLINE)}</div></div></div>",
     unsafe_allow_html=True)
 
@@ -622,17 +741,22 @@ def page_dashboard():
 
     st.subheader("Highest-capital spare lines")
     top = sorted(rows, key=lambda r: -r["capital"])[:10]
-    st.dataframe(pd.DataFrame([{
-        "Spare": r["name"] or r["sku"],
-        "Equipment": r.get("equipment", ""),
-        "Criticality": r.get("criticality", ""),
-        "On hand": int(r["on_hand"]),
-        "Capital": spares.cr(r["capital"]),
-        "Status": ("Obsolete" if r["obsolete"] else
-                   "Insurance" if r.get("insurance") else
-                   f"Excess {spares.cr(r['excess_value'])}" if r["excess_value"] > 0
-                   else "Optimal"),
-    } for r in top]), use_container_width=True, hide_index=True)
+
+    def _status_cell(r):
+        if r["obsolete"]:
+            return _pill("Obsolete", "danger", dot=True)
+        if r.get("insurance"):
+            return _pill("Insurance", "info", dot=True)
+        if r["excess_value"] > 0:
+            return _pill(f"Excess {spares.cr(r['excess_value'])}", "warn", dot=True)
+        return _pill("Optimal", "ok", dot=True)
+
+    _table(
+        ["Spare", "Equipment", "Criticality", "On hand", "Capital", "Status"],
+        [[r["name"] or r["sku"], r.get("equipment", ""),
+          _crit_pill_tbl(r.get("criticality", "")), int(r["on_hand"]),
+          spares.cr(r["capital"]), _status_cell(r)] for r in top],
+        num_cols=(3, 4))
 
 
 # ============================================================ PAGE: OBSOLETE
@@ -655,14 +779,14 @@ def page_obsolete():
     if not obs:
         st.success("No obsolete stock detected.")
         return
-    st.dataframe(pd.DataFrame([{
-        "Spare": r["name"] or r["sku"],
-        "Equipment": r.get("equipment", ""),
-        "Criticality": r.get("criticality", ""),
-        "On hand": int(r["on_hand"]),
-        "Years idle": (f"{r['age_years']:.1f}" if r.get("age_years") else "—"),
-        "Locked capital": spares.cr(r["capital"]),
-    } for r in obs]), use_container_width=True, hide_index=True)
+    _table(
+        ["Spare", "Equipment", "Criticality", "On hand", "Years idle",
+         "Locked capital"],
+        [[r["name"] or r["sku"], r.get("equipment", ""),
+          _crit_pill_tbl(r.get("criticality", "")), int(r["on_hand"]),
+          (f"{r['age_years']:.1f}" if r.get("age_years") else "—"),
+          spares.cr(r["capital"])] for r in obs],
+        num_cols=(3, 4, 5))
 
     st.markdown("#### Recommended action")
     st.markdown(
@@ -736,14 +860,14 @@ def page_forecast():
     st.altair_chart(chart, use_container_width=True)
 
     st.subheader("Per-spare AI read")
-    st.dataframe(pd.DataFrame([{
-        "Spare": r["name"] or r["sku"],
-        "Equipment": r.get("equipment", ""),
-        "Forecast/day": round(r["forecast"]["daily_rate"], 3),
-        "Trend/mo": f"{r['forecast']['ai_analysis']['trend_pct_month']:+.0f}%",
-        "Momentum": f"{r['forecast']['ai_analysis']['momentum_pct']:+.0f}%",
-        "Peak day": r["forecast"]["ai_analysis"]["busiest_day"],
-    } for r in ai_rows]), use_container_width=True, hide_index=True)
+    _table(
+        ["Spare", "Equipment", "Forecast/day", "Trend/mo", "Momentum", "Peak day"],
+        [[r["name"] or r["sku"], r.get("equipment", ""),
+          f"{r['forecast']['daily_rate']:.3f}",
+          f"{r['forecast']['ai_analysis']['trend_pct_month']:+.0f}%",
+          f"{r['forecast']['ai_analysis']['momentum_pct']:+.0f}%",
+          r["forecast"]["ai_analysis"]["busiest_day"]] for r in ai_rows],
+        num_cols=(2, 3, 4))
 
 
 # ============================================================ PAGE: OPTIMIZER
@@ -796,23 +920,23 @@ def page_optimize():
         mm[2].metric("Deferred", len(deferred))
 
         def _reo_table(lst):
-            return pd.DataFrame([{
-                "Spare": r["name"] or r["sku"],
-                "Equipment": r.get("equipment", ""),
-                "Criticality": r.get("criticality", ""),
-                "Type": "Insurance" if r.get("insurance") else "Demand",
-                "Risk": r["risk"],
-                "On hand": int(r["on_hand"]),
-                "Order qty": int(r["reco_qty"]),
-                "Value": spares.cr(r["reco_qty"] * r["unit_cost"]),
-            } for r in lst])
+            _table(
+                ["Spare", "Equipment", "Criticality", "Type", "Risk",
+                 "On hand", "Order qty", "Value"],
+                [[r["name"] or r["sku"], r.get("equipment", ""),
+                  _crit_pill_tbl(r.get("criticality", "")),
+                  _pill("Insurance", "info") if r.get("insurance")
+                  else _pill("Demand", "neutral"),
+                  _risk_pill(r["risk"]), int(r["on_hand"]),
+                  int(r["reco_qty"]), spares.cr(r["reco_qty"] * r["unit_cost"])]
+                 for r in lst],
+                num_cols=(5, 6, 7))
 
         st.markdown("##### Fund these now")
-        st.dataframe(_reo_table(chosen), use_container_width=True, hide_index=True)
+        _reo_table(chosen)
         if deferred:
             st.markdown("##### Deferred to next cycle (raise budget to include)")
-            st.dataframe(_reo_table(deferred), use_container_width=True,
-                         hide_index=True)
+            _reo_table(deferred)
 
     ins = [r for r in rows if r.get("insurance")]
     if ins:
@@ -821,14 +945,13 @@ def page_optimize():
                    "strategic minimum of "
                    f"{spares.INSURANCE_MIN} per train — never demand-forecast, "
                    "never flagged excess. One failure must not idle the train.")
-        st.dataframe(pd.DataFrame([{
-            "Spare": r["name"] or r["sku"],
-            "Equipment": r.get("equipment", ""),
-            "On hand": int(r["on_hand"]),
-            "Strategic min": spares.INSURANCE_MIN,
-            "Risk": r["risk"],
-            "Unit cost": spares.cr(r["unit_cost"]),
-        } for r in ins]), use_container_width=True, hide_index=True)
+        _table(
+            ["Spare", "Equipment", "On hand", "Strategic min", "Risk",
+             "Unit cost"],
+            [[r["name"] or r["sku"], r.get("equipment", ""), int(r["on_hand"]),
+              spares.INSURANCE_MIN, _risk_pill(r["risk"]),
+              spares.cr(r["unit_cost"])] for r in ins],
+            num_cols=(2, 3, 5))
 
 
 # ============================================================ PAGE: PREDICTIVE
@@ -867,15 +990,25 @@ def page_predictive():
 
 # ============================================================ PAGE: MASTER/DATA
 def _upload_flow():
-    up = st.file_uploader("Upload SAP / Excel / CSV export",
-                          type=["xlsx", "xls", "csv"], key="inv_upload")
+    up = st.file_uploader(
+        "Upload SAP / Excel / CSV / PDF export",
+        type=["xlsx", "xls", "csv", "pdf"], key="inv_upload",
+        help="Stock counts and issue history from Excel, CSV, or a tabular PDF "
+             "report (e.g. an SAP MB52 stock dump). Columns are auto-mapped.")
     file_tag = (up.name, up.size) if up is not None else None
     already = st.session_state.get("imported_file") == file_tag
     if up is None or already:
         return
     st.markdown("#### Reading your export")
     ad = TabularAdapter()
-    df = ad.read(up)
+    try:
+        df = ad.read(up)
+    except RuntimeError as e:
+        st.error(str(e))
+        return
+    if df is None or df.empty:
+        st.error("That file had no readable rows. Try an Excel/CSV export.")
+        return
     st.write("First rows detected:")
     st.dataframe(df.head(8), use_container_width=True)
     mapping = ad.suggest_mapping(df, CANON_FIELDS)
@@ -920,7 +1053,7 @@ def page_master():
 
     tab_issue, tab_stock, tab_upload, tab_add = st.tabs(
         ["Record issue / receipt", "Set stock counts",
-         "Upload SAP export", "Add a spare"])
+         "Upload file (Excel · CSV · PDF)", "Add a spare"])
 
     # ---- record consumption (issues) + receipts ----
     with tab_issue:
@@ -1033,10 +1166,10 @@ def page_ask():
 
     suggestions = [
         "How much working capital is blocked?",
-        "Which spares are obsolete?",
+        "What will maintenance cost this month?",
         "How much can we release?",
         "What should we reorder first?",
-        "Which critical spares are at risk?",
+        "Which equipment is heading to failure?",
     ]
     cols = st.columns(len(suggestions))
     picked = None
@@ -1063,9 +1196,9 @@ def page_ask():
         return (txt or "").replace("~", "\\~")
 
     for uq, ua in hist:
-        with st.chat_message("user"):
+        with st.chat_message("user", avatar="👷"):
             st.markdown(_md(uq))
-        with st.chat_message("assistant"):
+        with st.chat_message("assistant", avatar="🔧"):
             st.markdown(_md(ua))
 
 
@@ -1100,15 +1233,16 @@ def page_roadmap():
     st.subheader("Why AISync")
     cc = st.columns(3)
     facts = [
-        ("Grounded, not guessed",
-         "Every ₹Cr figure is computed from the plant's own data. The assistant "
-         "cannot invent numbers."),
-        ("From-scratch AI",
-         "The forecaster is a numpy-only neural net with cross-spare pooling — "
-         "no paid APIs, fully inspectable, runs on plant infrastructure."),
-        ("Reliability-first",
-         "Critical and insurance spares are protected to tighter service levels; "
-         "capital is released only from obsolete and genuinely excess stock."),
+        ("Every number is auditable",
+         "Each figure traces to the plant's own issues and stock — you can point "
+         "to the line item behind it. Nothing is estimated or invented."),
+        ("Runs on your infrastructure",
+         "The forecasting model is self-contained and needs no external service "
+         "or paid API, so plant data never leaves your environment."),
+        ("Reliability comes first",
+         "Critical and insurance spares are protected to tighter service levels. "
+         "Capital is released only from obsolete and genuinely excess stock — "
+         "never at the cost of an unplanned shutdown."),
     ]
     for i, (h, b) in enumerate(facts):
         cc[i].markdown(
