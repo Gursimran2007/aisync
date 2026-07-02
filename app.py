@@ -77,26 +77,40 @@ def inject_css():
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
       :root{
-        --bg:#F4F6FA; --surface:#FFFFFF; --border:#E1E7F0; --border-2:#EDF1F7;
-        --text:#141B26; --muted:#5B6879; --accent:#1F4E79; --accent-2:#2C6699;
-        --accent-soft:#E7EFF7; --teal:#0E7C86; --display:'Space Grotesk',sans-serif;
-        --radius:12px; --radius-sm:9px;
-        --shadow-sm:0 1px 2px rgba(20,27,38,.06), 0 1px 3px rgba(20,27,38,.05);
-        --shadow-md:0 4px 14px rgba(20,27,38,.08), 0 1px 3px rgba(20,27,38,.05);
-        --shadow-lg:0 18px 40px rgba(20,27,38,.12), 0 4px 12px rgba(20,27,38,.06);
+        /* cool-grey base — 'grey is the new black' (Apple system greys) */
+        --bg:#F5F5F7; --surface:#FFFFFF; --border:#D2D2D7; --border-2:#E6E6EB;
+        --text:#1D1D1F; --muted:#6E6E73; --accent:#1F4E79; --accent-2:#2C6699;
+        --accent-soft:#E9F0F7; --teal:#0E7C86; --display:'Space Grotesk',sans-serif;
+        /* large, smooth corners read as 'premium app', not 'database software' */
+        --radius:18px; --radius-sm:12px; --radius-lg:22px;
+        /* glass material */
+        --glass:rgba(255,255,255,.70); --glass-strong:rgba(255,255,255,.82);
+        --glass-brd:rgba(255,255,255,.65); --hair:rgba(60,60,67,.12);
+        /* multi-layered, physical depth (ambient + contact + key light) */
+        --shadow-sm:0 1px 1px rgba(20,27,38,.04), 0 2px 6px rgba(20,27,38,.05);
+        --shadow-md:0 2px 4px rgba(20,27,38,.05), 0 10px 24px rgba(20,27,38,.08);
+        --shadow-lg:0 8px 16px rgba(20,27,38,.08), 0 24px 56px rgba(20,27,38,.14);
+        --shadow-glass:0 1px 0 rgba(255,255,255,.6) inset,
+                       0 1px 2px rgba(20,27,38,.04),
+                       0 12px 30px rgba(20,27,38,.10);
         --ease:cubic-bezier(.4,0,.2,1);
         --spring:cubic-bezier(.34,1.56,.64,1);
+        --apple:cubic-bezier(.25,1,.5,1);
       }
       html, body, [class*="css"] { font-family:'Inter',sans-serif; color:var(--text);
         -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
       html{ scroll-behavior:smooth; }
       .stApp { background:
-        radial-gradient(1200px 600px at 100% -10%, #E8EFF8 0%, transparent 55%),
-        radial-gradient(1000px 520px at -8% 8%, #EEF4FB 0%, transparent 50%),
+        radial-gradient(1200px 640px at 100% -12%, #E7EEF7 0%, transparent 58%),
+        radial-gradient(1000px 560px at -8% 6%, #ECECF1 0%, transparent 52%),
         var(--bg);
         background-attachment:fixed;
         background-size:140% 140%, 140% 140%, 100% 100%;
         animation:ssDrift 26s ease-in-out infinite alternate; }
+      /* fluid type scale — perfectly sized on any screen */
+      h1{ font-size:clamp(1.7rem,1.2rem + 1.6vw,2.4rem); }
+      h2{ font-size:clamp(1.35rem,1.05rem + 1.1vw,1.85rem); }
+      h3{ font-size:clamp(1.12rem,.95rem + .7vw,1.4rem); }
       header[data-testid="stHeader"]{ background:transparent; }
       [data-testid="stToolbar"]{ display:none; }
 
@@ -144,14 +158,17 @@ def inject_css():
         border:1px solid var(--border); border-radius:8px;
         box-shadow:0 1px 3px rgba(0,0,0,.08);
       }
-      .block-container { padding-top:2.4rem; max-width:1240px; }
-      h1,h2,h3 { font-family:var(--display); letter-spacing:-.02em; font-weight:600; }
+      .block-container { padding-top:2.8rem; max-width:1240px; }
+      /* vertical rhythm — Apple-style generous gap between stacked blocks */
+      .main .block-container > div > div > [data-testid="stVerticalBlock"]{ gap:1.6rem; }
+      [data-testid="stHorizontalBlock"]{ gap:1.4rem; }
+      h1,h2,h3 { font-family:var(--display); letter-spacing:-.022em; font-weight:600; }
       h4 { letter-spacing:-.015em; font-weight:600; }
 
       .appbar{
-        display:flex; align-items:center; gap:18px;
-        padding:2px 0 20px; margin-bottom:22px;
-        border-bottom:1px solid var(--border);
+        display:flex; align-items:center; gap:22px;
+        padding:10px 0 26px; margin-bottom:30px;
+        border-bottom:1px solid var(--hair);
         animation:ssRise .45s var(--ease) both;
       }
       .appbar .logo{
@@ -181,8 +198,9 @@ def inject_css():
       .appbar .logo svg{ display:block; position:relative; z-index:1; }
       .appbar .brand-wrap{ display:flex; flex-direction:column; gap:2px; }
       .appbar .brand-name{
-        font-family:var(--display); font-size:2.15rem; font-weight:700;
-        line-height:1.02; letter-spacing:-.03em;
+        font-family:var(--display);
+        font-size:clamp(1.9rem,1.5rem + 1.3vw,2.5rem); font-weight:700;
+        line-height:1.0; letter-spacing:-.035em;
         background:linear-gradient(96deg, #0E2A45 0%, var(--accent) 42%, #2E6DA8 78%);
         -webkit-background-clip:text; background-clip:text;
         -webkit-text-fill-color:transparent; color:var(--accent);
@@ -196,21 +214,29 @@ def inject_css():
         letter-spacing:.005em; max-width:62ch; }
 
       [data-testid="stMetric"]{
-        background:var(--surface); border:1px solid var(--border);
-        border-radius:var(--radius); padding:16px 18px;
-        box-shadow:var(--shadow-sm); position:relative; overflow:hidden;
-        transition:transform .18s var(--ease), box-shadow .18s var(--ease);
+        background:var(--glass);
+        -webkit-backdrop-filter:blur(20px) saturate(180%);
+        backdrop-filter:blur(20px) saturate(180%);
+        border:1px solid var(--glass-brd); border-radius:var(--radius);
+        padding:20px 22px; box-shadow:var(--shadow-glass);
+        position:relative; overflow:hidden;
+        transition:transform .34s var(--spring), box-shadow .34s var(--apple);
       }
       [data-testid="stMetric"]::before{
         content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
         background:linear-gradient(var(--accent-2), var(--accent)); opacity:.9;
       }
-      [data-testid="stMetric"]:hover{ transform:translateY(-2px); box-shadow:var(--shadow-md); }
+      /* subtle lift — scale 1.02 with a spring, key metrics feel physical */
+      [data-testid="stMetric"]:hover{
+        transform:translateY(-4px) scale(1.02); box-shadow:var(--shadow-lg);
+        border-color:rgba(255,255,255,.85);
+      }
       [data-testid="stMetricLabel"] p{
-        font-size:.72rem !important; font-weight:600; letter-spacing:.04em;
+        font-size:.7rem !important; font-weight:600; letter-spacing:.07em;
         text-transform:uppercase; color:var(--muted);
       }
-      [data-testid="stMetricValue"]{ font-weight:680; font-size:1.6rem; }
+      [data-testid="stMetricValue"]{ font-weight:680;
+        font-size:clamp(1.5rem,1.2rem + .9vw,1.9rem); letter-spacing:-.02em; }
 
       .stButton>button, .stDownloadButton>button, .stLinkButton>a,
       [data-testid="stFormSubmitButton"]>button{
@@ -241,16 +267,21 @@ def inject_css():
         font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
         color:var(--muted); padding:2px 6px 6px;
       }
-      [data-testid="stSidebar"] [role="radiogroup"]{ gap:1px; }
+      [data-testid="stSidebar"] [role="radiogroup"]{ gap:3px; }
       [data-testid="stSidebar"] [role="radiogroup"] label{
-        display:flex; width:100%; border-radius:6px; padding:9px 12px; margin:0;
-        cursor:pointer; font-weight:500; font-size:.92rem; color:var(--text);
-        border-left:3px solid transparent; transition:background .12s, color .12s;
+        display:flex; width:100%; border-radius:12px; padding:9px 14px; margin:0;
+        cursor:pointer; font-weight:500; font-size:.92rem; color:var(--muted);
+        transition:background .24s var(--apple), color .24s var(--apple),
+                   transform .24s var(--spring);
       }
-      [data-testid="stSidebar"] [role="radiogroup"] label:hover{ background:#F0F4F9; }
+      [data-testid="stSidebar"] [role="radiogroup"] label:hover{
+        background:var(--hair); color:var(--text); }
       [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked){
-        background:var(--accent-soft); color:var(--accent);
-        border-left:3px solid var(--accent); font-weight:600;
+        background:var(--glass-strong);
+        -webkit-backdrop-filter:blur(14px) saturate(180%);
+        backdrop-filter:blur(14px) saturate(180%);
+        box-shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 2px 8px rgba(20,27,38,.08);
+        color:var(--accent); font-weight:600;
       }
       [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) p{ color:var(--accent); font-weight:600; }
       [data-testid="stSidebar"] [role="radiogroup"] label > div:first-child{ display:none; }
@@ -269,10 +300,12 @@ def inject_css():
       [data-testid="stSidebar"] .stButton>button{ font-size:.86rem; }
       hr{ margin:1rem 0; border-color:var(--border-2); }
 
-      /* domain callout cards */
-      .card{ background:var(--surface); border:1px solid var(--border);
-        border-radius:var(--radius); padding:16px 18px; box-shadow:var(--shadow-sm);
-        margin-bottom:10px; }
+      /* domain callout cards — glass material */
+      .card{ background:var(--glass);
+        -webkit-backdrop-filter:blur(20px) saturate(180%);
+        backdrop-filter:blur(20px) saturate(180%);
+        border:1px solid var(--glass-brd); border-radius:var(--radius);
+        padding:20px 22px; box-shadow:var(--shadow-glass); margin-bottom:14px; }
       .card h4{ margin:.1rem 0 .3rem; }
       .pill{ display:inline-block; padding:2px 9px; border-radius:20px;
         font-size:.72rem; font-weight:600; letter-spacing:.02em;
@@ -289,8 +322,8 @@ def inject_css():
       .pill .pdot{ width:6px; height:6px; border-radius:50%; display:inline-block;
         margin-right:5px; vertical-align:middle; background:currentColor; }
 
-      .card:hover{ box-shadow:var(--shadow-md); transform:translateY(-1px); }
-      .card{ transition:transform .2s var(--ease), box-shadow .2s var(--ease); }
+      .card:hover{ box-shadow:var(--shadow-lg); transform:translateY(-2px); }
+      .card{ transition:transform .3s var(--spring), box-shadow .3s var(--apple); }
 
       /* ---- premium read-only data table (sticky header, zebra, hover) ---- */
       .ptable-wrap{ border:1px solid var(--border); border-radius:var(--radius);
@@ -853,10 +886,19 @@ def page_forecast():
     st.markdown(f"Heaviest spare draw falls on **{busiest}** — the model has "
                 "learned the plant's planned-shutdown window.")
     wk_df = pd.DataFrame({"Day": dows, "Predicted units": plant_week})
-    chart = (alt.Chart(wk_df).mark_bar(color="#1F4E79")
-             .encode(x=alt.X("Day:N", sort=dows, title=None),
-                     y=alt.Y("Predicted units:Q", title=None))
-             .properties(height=220))
+    chart = (alt.Chart(wk_df)
+             .mark_bar(color="#1F4E79", cornerRadiusTopLeft=6,
+                       cornerRadiusTopRight=6, size=34)
+             .encode(x=alt.X("Day:N", sort=dows, title=None,
+                             axis=alt.Axis(labelColor="#6E6E73",
+                                           labelFont="Inter", labelPadding=8)),
+                     y=alt.Y("Predicted units:Q", title=None,
+                             axis=alt.Axis(labelColor="#AEAEB2",
+                                           tickCount=4, gridColor="#EDEDF0")))
+             .properties(height=240)
+             .configure_axis(domainColor="#E6E6EB", domainWidth=1,
+                             tickColor="#E6E6EB", grid=False)
+             .configure_view(strokeWidth=0))
     st.altair_chart(chart, use_container_width=True)
 
     st.subheader("Per-spare AI read")
