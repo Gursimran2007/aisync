@@ -40,16 +40,26 @@ def _init_auth():
 
 _init_auth()
 
-# In-brand mark: a hexagonal node cluster (spare/molecule motif).
+# In-brand mark: a hexagon "spare" frame with two synced flow-arcs, a pulsing
+# AI core and an orbiting node — a quiet motion-of-flow motif (SMIL animates
+# even when injected as innerHTML, so it runs without external JS).
 LOGO_MARK = (
-    "<svg width='22' height='22' viewBox='0 0 24 24' fill='none' "
+    "<svg width='24' height='24' viewBox='0 0 32 32' fill='none' "
     "xmlns='http://www.w3.org/2000/svg'>"
-    "<path d='M12 2.4 20.5 7v10L12 21.6 3.5 17V7L12 2.4Z' "
-    "stroke='#fff' stroke-opacity='.9' stroke-width='1.4' fill='none'/>"
-    "<circle cx='12' cy='12' r='2.3' fill='#fff'/>"
-    "<circle cx='12' cy='6.2' r='1.3' fill='#fff' fill-opacity='.85'/>"
-    "<circle cx='17' cy='15' r='1.3' fill='#fff' fill-opacity='.85'/>"
-    "<circle cx='7' cy='15' r='1.3' fill='#fff' fill-opacity='.85'/>"
+    "<path d='M16 3 27 9.5V22.5L16 29 5 22.5V9.5L16 3Z' "
+    "stroke='#fff' stroke-opacity='.45' stroke-width='1.5' fill='none'/>"
+    "<g stroke='#fff' stroke-width='2' stroke-linecap='round' fill='none' "
+    "stroke-opacity='.92'>"
+    "<path d='M16 8.5A7.5 7.5 0 0 1 23.5 16'/>"
+    "<path d='M16 23.5A7.5 7.5 0 0 1 8.5 16'/>"
+    "</g>"
+    "<circle cx='16' cy='16' r='3' fill='#fff'>"
+    "<animate attributeName='r' values='2.7;3.5;2.7' dur='2.6s' "
+    "repeatCount='indefinite'/></circle>"
+    "<g><animateTransform attributeName='transform' type='rotate' "
+    "from='0 16 16' to='360 16 16' dur='9s' repeatCount='indefinite'/>"
+    "<circle cx='16' cy='6' r='1.8' fill='#fff'/>"
+    "<circle cx='16' cy='26' r='1.8' fill='#fff' fill-opacity='.8'/></g>"
     "</svg>"
 )
 
@@ -57,26 +67,54 @@ LOGO_MARK = (
 def inject_css():
     st.markdown("""
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
       :root{
         --bg:#F4F6FA; --surface:#FFFFFF; --border:#E1E7F0; --border-2:#EDF1F7;
         --text:#141B26; --muted:#5B6879; --accent:#1F4E79; --accent-2:#2C6699;
-        --accent-soft:#E7EFF7; --teal:#0E7C86;
+        --accent-soft:#E7EFF7; --teal:#0E7C86; --display:'Space Grotesk',sans-serif;
         --radius:12px; --radius-sm:9px;
         --shadow-sm:0 1px 2px rgba(20,27,38,.06), 0 1px 3px rgba(20,27,38,.05);
         --shadow-md:0 4px 14px rgba(20,27,38,.08), 0 1px 3px rgba(20,27,38,.05);
+        --shadow-lg:0 18px 40px rgba(20,27,38,.12), 0 4px 12px rgba(20,27,38,.06);
         --ease:cubic-bezier(.4,0,.2,1);
+        --spring:cubic-bezier(.34,1.56,.64,1);
       }
       html, body, [class*="css"] { font-family:'Inter',sans-serif; color:var(--text);
         -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
       html{ scroll-behavior:smooth; }
       .stApp { background:
         radial-gradient(1200px 600px at 100% -10%, #E8EFF8 0%, transparent 55%),
-        var(--bg); }
+        radial-gradient(1000px 520px at -8% 8%, #EEF4FB 0%, transparent 50%),
+        var(--bg);
+        background-attachment:fixed;
+        background-size:140% 140%, 140% 140%, 100% 100%;
+        animation:ssDrift 26s ease-in-out infinite alternate; }
       header[data-testid="stHeader"]{ background:transparent; }
       [data-testid="stToolbar"]{ display:none; }
-      @keyframes ssRise{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
-      .main .block-container{ animation:ssRise .28s var(--ease) both; }
+
+      /* ---- motion system (Apple-like: content flows in, staggered) ---- */
+      @keyframes ssRise{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+      @keyframes ssFadeUp{ from{opacity:0; transform:translateY(22px) scale(.985);}
+                           to{opacity:1; transform:none;} }
+      @keyframes ssDrift{ from{background-position:0% 0%, 0% 0%, 0 0;}
+                          to{background-position:100% 60%, 40% 100%, 0 0;} }
+      @keyframes ssShine{ 0%{transform:translateX(-120%) skewX(-18deg);}
+                          60%,100%{transform:translateX(220%) skewX(-18deg);} }
+      @keyframes ssPop{ from{opacity:0; transform:scale(.9);} to{opacity:1; transform:none;} }
+      .main .block-container{ animation:ssRise .3s var(--ease) both; }
+      /* stagger the primary content blocks as they enter */
+      .main .block-container > div > div > [data-testid="stVerticalBlock"] > div{
+        animation:ssFadeUp .5s var(--ease) both;
+      }
+      [data-testid="stMetric"]{ animation:ssFadeUp .55s var(--spring) both; }
+      div[data-testid="column"]:nth-child(1) [data-testid="stMetric"]{ animation-delay:.02s; }
+      div[data-testid="column"]:nth-child(2) [data-testid="stMetric"]{ animation-delay:.09s; }
+      div[data-testid="column"]:nth-child(3) [data-testid="stMetric"]{ animation-delay:.16s; }
+      div[data-testid="column"]:nth-child(4) [data-testid="stMetric"]{ animation-delay:.23s; }
+      .card{ animation:ssFadeUp .5s var(--ease) both; }
+      @media (prefers-reduced-motion: reduce){
+        *, .stApp{ animation:none !important; transition:none !important; }
+      }
       [data-testid="stSidebar"][aria-expanded="false"]{
         transform:none !important;
         width:46px !important; min-width:46px !important;
@@ -99,25 +137,40 @@ def inject_css():
         box-shadow:0 1px 3px rgba(0,0,0,.08);
       }
       .block-container { padding-top:2.4rem; max-width:1240px; }
-      h1,h2,h3,h4 { letter-spacing:-.015em; font-weight:600; }
+      h1,h2,h3 { font-family:var(--display); letter-spacing:-.02em; font-weight:600; }
+      h4 { letter-spacing:-.015em; font-weight:600; }
 
       .appbar{
-        display:flex; align-items:center; gap:14px;
+        display:flex; align-items:center; gap:15px;
         padding:0 0 16px; margin-bottom:18px; border-bottom:1px solid var(--border);
       }
       .appbar .logo{
-        width:42px; height:42px; border-radius:12px; flex:0 0 42px;
-        background:linear-gradient(145deg, #2C6699, var(--accent) 55%, #163A5A);
+        width:46px; height:46px; border-radius:14px; flex:0 0 46px;
+        position:relative; overflow:hidden;
+        background:linear-gradient(145deg, #3E86C7 0%, var(--accent) 52%, #12314E 100%);
         display:flex; align-items:center; justify-content:center;
-        box-shadow:0 4px 12px rgba(31,78,121,.32),
-                   inset 0 1px 0 rgba(255,255,255,.22),
-                   inset 0 -2px 6px rgba(0,0,0,.12);
-        transition:transform .2s var(--ease), box-shadow .2s var(--ease);
+        box-shadow:0 6px 18px rgba(31,78,121,.36),
+                   inset 0 1px 0 rgba(255,255,255,.28),
+                   inset 0 -3px 8px rgba(0,0,0,.16);
+        transition:transform .3s var(--spring), box-shadow .3s var(--ease);
       }
-      .appbar .logo:hover{ transform:translateY(-1px) rotate(-2deg); }
-      .appbar .logo svg{ display:block; }
-      .appbar .brand-name{ font-size:1.2rem; font-weight:680; line-height:1.1; }
-      .appbar .brand-sub{ font-size:.86rem; color:var(--muted); margin-top:2px; }
+      .appbar .logo::after{
+        content:""; position:absolute; top:0; left:0; width:45%; height:100%;
+        background:linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+        animation:ssShine 5.5s var(--ease) 1.2s infinite;
+      }
+      .appbar .logo:hover{ transform:translateY(-2px) scale(1.05) rotate(-3deg);
+        box-shadow:var(--shadow-lg); }
+      .appbar .logo svg{ display:block; position:relative; z-index:1; }
+      .appbar .brand-name{
+        font-family:var(--display); font-size:1.5rem; font-weight:700;
+        line-height:1.05; letter-spacing:-.02em;
+        background:linear-gradient(92deg, #12314E 0%, var(--accent) 45%, #2C6699 100%);
+        -webkit-background-clip:text; background-clip:text;
+        -webkit-text-fill-color:transparent; color:var(--accent);
+      }
+      .appbar .brand-sub{ font-size:.86rem; color:var(--muted); margin-top:3px;
+        letter-spacing:.005em; }
 
       [data-testid="stMetric"]{
         background:var(--surface); border:1px solid var(--border);
@@ -203,6 +256,53 @@ def inject_css():
       .pill-crit{ background:#FBE7E1; color:#B4543A; }
       .pill-ess{ background:#FDF3DF; color:#9A7420; }
       .pill-non{ background:#E7EFF7; color:#2C6699; }
+
+      .card:hover{ box-shadow:var(--shadow-md); transform:translateY(-1px); }
+      .card{ transition:transform .2s var(--ease), box-shadow .2s var(--ease); }
+
+      /* manager action band — the "what do I do this week" headline */
+      .brief{ position:relative; overflow:hidden; margin:2px 0 18px;
+        border:1px solid #CFE0F0; border-radius:16px; padding:20px 24px;
+        background:linear-gradient(120deg, #F3F8FD 0%, #EAF2FB 55%, #E4EEF9 100%);
+        box-shadow:var(--shadow-sm); animation:ssFadeUp .55s var(--ease) both; }
+      .brief::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:4px;
+        background:linear-gradient(var(--accent-2), var(--accent)); }
+      .brief::after{ content:""; position:absolute; top:0; left:0; width:40%; height:100%;
+        background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+        animation:ssShine 7s var(--ease) 1s infinite; }
+      .brief .eyebrow{ font-size:.7rem; font-weight:700; letter-spacing:.1em;
+        text-transform:uppercase; color:var(--accent-2); }
+      .brief h3{ margin:.28rem 0 .5rem; font-size:1.22rem; color:#12314E; }
+      .brief .brief-actions{ display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+      .brief .chip{ display:inline-flex; align-items:center; gap:6px;
+        background:#fff; border:1px solid #D3E2F1; border-radius:999px;
+        padding:5px 12px; font-size:.82rem; font-weight:550; color:#22354A;
+        box-shadow:var(--shadow-sm); animation:ssPop .5s var(--spring) both; }
+      .brief .chip b{ color:var(--accent); }
+
+      /* roadmap phases with a connecting flow spine */
+      .phase{ position:relative; padding:2px 0 20px 30px; }
+      .phase::before{ content:""; position:absolute; left:9px; top:6px;
+        width:12px; height:12px; border-radius:50%; background:var(--accent);
+        box-shadow:0 0 0 4px var(--accent-soft); z-index:1; }
+      .phase::after{ content:""; position:absolute; left:14px; top:14px; bottom:-6px;
+        width:2px; background:linear-gradient(var(--accent), #C9D9EA); }
+      .phase:last-child::after{ display:none; }
+      .phase .card{ margin:0; }
+      .phase .ph-tag{ font-size:.7rem; font-weight:700; letter-spacing:.08em;
+        text-transform:uppercase; color:var(--accent-2); }
+
+      /* user-guide numbered steps */
+      .step{ display:flex; gap:14px; align-items:flex-start; margin-bottom:14px;
+        animation:ssFadeUp .5s var(--ease) both; }
+      .step .num{ flex:0 0 30px; width:30px; height:30px; border-radius:50%;
+        display:flex; align-items:center; justify-content:center;
+        font-family:var(--display); font-weight:700; font-size:.95rem; color:#fff;
+        background:linear-gradient(145deg, var(--accent-2), var(--accent));
+        box-shadow:var(--shadow-sm); }
+      .step .step-body{ padding-top:2px; }
+      .step .step-body b{ font-size:1rem; }
+      .step .step-body div{ color:var(--muted); font-size:.92rem; margin-top:1px; }
 
       [data-testid="stChatMessage"]{
         background:var(--surface); border:1px solid var(--border);
@@ -358,6 +458,7 @@ NAV = {
     "master": "Spare Master & Data",
     "ask":   "Ask AISync",
     "road":  "Implementation Roadmap",
+    "guide": "User Guide",
 }
 
 with st.sidebar:
@@ -451,6 +552,18 @@ def page_dashboard():
         _need_data_hint(); return
     rows = _load_rows()
     pf = spares.portfolio(rows)
+
+    # Personalized manager action band — computed for THIS plant.
+    brief = spares.manager_brief(rows)
+    plant = st.session_state.get("plant_name", "your plant")
+    chips = "".join(
+        f"<span class='chip'>{_esc(label)} · <b>{_esc(val)}</b></span>"
+        for label, val in brief["actions"])
+    st.markdown(
+        f"<div class='brief'><div class='eyebrow'>AISync · action plan for "
+        f"{_esc(plant)}</div><h3>{_esc(brief['headline'])}</h3>"
+        f"<div class='brief-actions'>{chips}</div></div>",
+        unsafe_allow_html=True)
 
     m = st.columns(4)
     m[0].metric("Working capital blocked", spares.cr(pf["total_capital"]),
@@ -959,34 +1072,29 @@ def page_ask():
 # ============================================================ PAGE: ROADMAP
 def page_roadmap():
     st.subheader("Implementation roadmap")
-    st.caption("A phased, SAP-integrated rollout — start read-only on a data "
-               "export, earn trust, then close the loop with procurement.")
+    plant = st.session_state.get("plant_name", "your plant")
 
-    phases = [
-        ("Phase 1 · Data foundation",
-         "Ingest the spare master and 3–5 years of issue history from SAP MM "
-         "(read-only export). Auto-map messy columns, clean units and dates, "
-         "establish the working-capital baseline in ₹Cr."),
-        ("Phase 2 · Obsolescence & criticality",
-         "Tag every line by criticality (critical / essential / non-critical) "
-         "and flag obsolete/dead stock (>5 yrs no movement). Surface the first "
-         "release opportunity for finance sign-off."),
-        ("Phase 3 · AI forecasting & optimization",
-         "Train the neural consumption forecaster plant-wide; set "
-         "criticality-based service levels and insurance-spare minimums. "
-         "Produce reorder points and excess-release recommendations."),
-        ("Phase 4 · Predictive maintenance link",
-         "Correlate accelerating spare consumption with equipment health to "
-         "flag likely failures early, feeding the maintenance planning module."),
-        ("Phase 5 · Closed-loop SAP integration",
-         "Write reorder proposals back to SAP as purchase requisitions; live "
-         "two-way sync so stock, issues and lead times stay current with no "
-         "manual export."),
-    ]
-    for title, body in phases:
+    if not have_data:
+        st.caption("A phased, SAP-integrated rollout — start read-only on a "
+                   "data export, earn trust, then close the loop with "
+                   "procurement. Load your spare master and this plan "
+                   "personalizes to your plant's own numbers.")
+        _need_data_hint()
+        return
+
+    rows = _load_rows()
+    plan = spares.plant_plan(rows, plant_name=plant)
+    st.caption(f"Generated for **{plant}** from its own data — the phases are "
+               "ordered so the highest-value lever for this plant comes first. "
+               "Every figure is computed, never assumed.")
+
+    for ph in plan["phases"]:
         st.markdown(
-            f"<div class='card'><h4>{_esc(title)}</h4>"
-            f"<div style='color:#5B6879;font-size:.92rem'>{_esc(body)}</div></div>",
+            f"<div class='phase'><div class='card'>"
+            f"<div class='ph-tag'>{_esc(ph['tag'])}</div>"
+            f"<h4>{_esc(ph['title'])}</h4>"
+            f"<div style='color:#5B6879;font-size:.92rem'>{_esc(ph['body'])}</div>"
+            f"</div></div>",
             unsafe_allow_html=True)
 
     st.subheader("Why AISync")
@@ -1009,10 +1117,85 @@ def page_roadmap():
             unsafe_allow_html=True)
 
 
+# ============================================================ PAGE: USER GUIDE
+def page_guide():
+    st.subheader("User guide — how to use AISync")
+    st.caption("Plain and simple. If you manage the plant's spares, this is all "
+               "you need to know. No jargon, no training required.")
+
+    st.markdown("#### What AISync does for you")
+    st.markdown(
+        "<div class='card'>AISync looks at the spare parts you keep in stock "
+        "and the money tied up in them. It tells you three things: "
+        "<b>which spares are dead money</b> you can free up, "
+        "<b>which spares to reorder</b> before they cause a breakdown, and "
+        "<b>which equipment may be about to fail</b> — all from your own "
+        "records. It never guesses a number.</div>",
+        unsafe_allow_html=True)
+
+    st.markdown("#### Get started in 3 steps")
+    steps = [
+        ("Load your spares",
+         "Go to <b>Spare Master &amp; Data</b> in the sidebar. Upload your SAP "
+         "or Excel export — AISync reads messy files and matches the columns "
+         "for you. In a hurry? Click <b>Load HPL demo data</b> to see it work."),
+        ("Read your action plan",
+         "Open the <b>Executive Dashboard</b>. The blue band at the top is your "
+         "to-do list for the week, written in rupees: how much you can free up "
+         "and what to reorder first."),
+        ("Take the actions",
+         "Use <b>Obsolete Detection</b> to clear dead stock, <b>Criticality "
+         "Optimizer</b> to see what to buy, and <b>Predictive Maintenance</b> "
+         "to catch failures early. That's it."),
+    ]
+    for i, (title, body) in enumerate(steps, 1):
+        st.markdown(
+            f"<div class='step'><div class='num'>{i}</div>"
+            f"<div class='step-body'><b>{title}</b><div>{body}</div></div></div>",
+            unsafe_allow_html=True)
+
+    st.markdown("#### What each page tells you")
+    guide = [
+        ("Executive Dashboard", "Your money at a glance — how much capital is "
+         "blocked, how much you can safely release, and the week's action plan."),
+        ("Obsolete Detection", "Spares that haven't moved in over 5 years — dead "
+         "money you can redeploy, sell, or write off."),
+        ("Consumption Forecast", "How fast each spare gets used, and which are "
+         "speeding up or slowing down — learned by the AI from your history."),
+        ("Criticality Optimizer", "What to reorder, most important first, and how "
+         "far a limited budget will stretch. Critical spares are never cut."),
+        ("Predictive Maintenance", "Spares being used faster than normal — an "
+         "early warning that a machine may be heading for failure."),
+        ("Spare Master & Data", "Where you record issues and receipts, set stock "
+         "counts, or upload a fresh SAP export."),
+        ("Ask AISync", "Type a plain question ('how much can we release?') and get "
+         "an answer straight from your numbers."),
+        ("Implementation Roadmap", "Your step-by-step rollout plan, built from "
+         "your plant's own data."),
+    ]
+    for name, what in guide:
+        st.markdown(
+            f"<div class='card' style='margin-bottom:8px'><b>{_esc(name)}</b>"
+            f"<div style='color:#5B6879;font-size:.92rem;margin-top:2px'>"
+            f"{_esc(what)}</div></div>",
+            unsafe_allow_html=True)
+
+    st.markdown("#### Good to know")
+    st.markdown(
+        "- **Your data is private.** Each plant workspace only ever sees its "
+        "own spares — no one else's.\n"
+        "- **Nothing is invented.** Every rupee figure is calculated from the "
+        "issues and stock you loaded.\n"
+        "- **Critical spares are protected.** AISync only ever suggests "
+        "releasing obsolete or genuinely excess stock — never the spares that "
+        "keep the plant running.\n"
+        "- **Stuck?** Use **Ask AISync** and just type your question.")
+
+
 # ============================================================ DISPATCH
 PAGES = {
     "dash": page_dashboard, "obs": page_obsolete, "fcast": page_forecast,
     "opt": page_optimize, "pdm": page_predictive, "master": page_master,
-    "ask": page_ask, "road": page_roadmap,
+    "ask": page_ask, "road": page_roadmap, "guide": page_guide,
 }
 PAGES[page]()

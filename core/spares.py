@@ -197,6 +197,170 @@ def predictive_maintenance(rows, min_momentum=12.0):
     return sorted(out, key=lambda r: -(r["momentum_pct"] + r["trend_pct_month"]))
 
 
+# ---- manager brief: the "what do I do this week" headline ----------------
+def manager_brief(rows):
+    """One computed, plant-specific action headline for the plant manager.
+
+    Replaces the manager's inventory headache with a ranked to-do: which lever
+    frees the most capital, what to reorder before a shutdown, and where an
+    equipment-failure signal is building — all in the plant's own numbers.
+    Everything here is derived from `rows`; nothing is templated or guessed."""
+    pf = portfolio(rows)
+    obs = obsolete_rows(rows)
+    need = reorder_rows(rows)
+    exc = excess_rows(rows)
+    pdm = predictive_maintenance(rows)
+    crit_need = [r for r in need if r.get("criticality") == "critical"]
+    spend = sum(r["reco_qty"] * r["unit_cost"] for r in need)
+
+    # Lead with whichever lever is biggest, phrased as a decision.
+    if pf["release_opportunity"] > 0:
+        headline = (f"You can release {cr(pf['release_opportunity'])} "
+                    f"({pf['release_pct']:.0f}% of blocked capital) without "
+                    f"touching a single critical spare.")
+    elif need:
+        headline = (f"No idle capital to release — focus on reliability: "
+                    f"{len(need)} spare(s) need replenishment.")
+    else:
+        headline = ("Inventory is balanced — no releasable capital and no "
+                    "replenishment gaps right now.")
+
+    actions = []
+    if obs:
+        actions.append(("Clear obsolete stock",
+                        f"{len(obs)} dead line(s) = {cr(pf['obsolete_value'])}"))
+    if exc:
+        actions.append(("Trim excess to AI-optimal",
+                        f"{len(exc)} line(s) = {cr(pf['excess_value'])}"))
+    if crit_need:
+        actions.append(("Reorder critical spares FIRST",
+                        f"{len(crit_need)} before next shutdown"))
+    elif need:
+        actions.append(("Plan replenishment",
+                        f"{len(need)} spare(s) · {cr(spend)}"))
+    if pdm:
+        top = pdm[0]
+        actions.append(("Investigate rising consumption",
+                        f"{top['name'] or top['sku']} "
+                        f"{top['momentum_pct']:+.0f}%/wk"))
+    return {"headline": headline, "actions": actions, "portfolio": pf}
+
+
+# ---- AI-personalized implementation roadmap ------------------------------
+def plant_plan(rows, plant_name=""):
+    """A rollout plan computed for THIS plant's data — not a generic template.
+
+    Each phase carries the plant's real figures (spare count, obsolete ₹,
+    excess ₹, the specific accelerating spares) and the phases are ordered so
+    the highest-value lever for this particular plant comes first."""
+    pf = portfolio(rows)
+    obs = obsolete_rows(rows)
+    exc = excess_rows(rows)
+    need = reorder_rows(rows)
+    pdm = predictive_maintenance(rows)
+    ins = [r for r in rows if r.get("insurance")]
+
+    def _names(lst, k=3):
+        got = [(_r["name"] or _r["sku"]) for _r in lst[:k]]
+        return ", ".join(got) if got else "—"
+
+    def _equip(lst, k=3):
+        seen, out = set(), []
+        for _r in lst:
+            e = (_r.get("equipment") or "").strip()
+            if e and e not in seen:
+                seen.add(e); out.append(e)
+            if len(out) >= k:
+                break
+        return ", ".join(out) if out else "assorted equipment"
+
+    plant = plant_name or "your plant"
+    phases = []
+
+    phases.append({
+        "tag": "Phase 1 · Live now",
+        "title": "Data foundation",
+        "body": (f"AISync has ingested {pf['n_spares']} spare line(s) for "
+                 f"{plant} and established a working-capital baseline of "
+                 f"{cr(pf['total_capital'])}. Every figure below is computed "
+                 f"from this plant's own issues and stock."),
+    })
+
+    # Rank the two capital levers by this plant's actual value.
+    levers = []
+    if pf["obsolete_value"] > 0:
+        levers.append((pf["obsolete_value"], {
+            "tag": "Phase 2 · Highest-value lever" if pf["obsolete_value"] >=
+                   pf["excess_value"] else "Phase 2 · Capital release",
+            "title": "Clear obsolete & dead capital",
+            "body": (f"{pf['n_obsolete']} line(s) worth "
+                     f"{cr(pf['obsolete_value'])} ({pf['obsolete_pct']:.0f}% of "
+                     f"capital) have not moved in over {OBSOLETE_YEARS} years — "
+                     f"led by {_names(obs)} on {_equip(obs)}. Redeploy, resell "
+                     f"or write these down first."),
+        }))
+    if pf["excess_value"] > 0:
+        levers.append((pf["excess_value"], {
+            "tag": "Phase 2 · Capital release",
+            "title": "Trim excess above AI-optimal levels",
+            "body": (f"{len(exc)} non-critical/essential line(s) hold "
+                     f"{cr(pf['excess_value'])} above the AI-optimal max — "
+                     f"led by {_names(exc)}. Draw these down naturally before "
+                     f"the next purchase cycle."),
+        }))
+    for _, ph in sorted(levers, key=lambda x: -x[0]):
+        phases.append(ph)
+
+    reo_body = (f"{len(need)} spare(s) need replenishment"
+                if need else "no replenishment gaps today")
+    if need:
+        crit_need = [r for r in need if r.get("criticality") == "critical"]
+        spend = sum(r["reco_qty"] * r["unit_cost"] for r in need)
+        reo_body = (f"The neural forecaster flags {len(need)} spare(s) for "
+                    f"replenishment ({cr(spend)}), "
+                    + (f"including {len(crit_need)} critical — reorder these "
+                       f"first to protect against a shutdown."
+                       if crit_need else
+                       "none critical, so schedule at your convenience."))
+    phases.append({
+        "tag": "Phase 3 · Reliability",
+        "title": "Criticality-based reorder plan",
+        "body": (reo_body + (f" {len(ins)} insurance spare(s) are held to a "
+                 f"strategic minimum of {INSURANCE_MIN} — never trimmed."
+                 if ins else "")),
+    })
+
+    if pdm:
+        top = pdm[0]
+        phases.append({
+            "tag": "Phase 4 · Predictive maintenance",
+            "title": "Act on early failure signals",
+            "body": (f"{len(pdm)} spare(s) show accelerating consumption — an "
+                     f"early equipment-failure signal. Watch "
+                     f"{top['name'] or top['sku']} "
+                     f"({top.get('equipment') or 'unassigned'}), up "
+                     f"{top['momentum_pct']:+.0f}% week-on-week: stage the spare "
+                     f"and inspect before it breaks."),
+        })
+    else:
+        phases.append({
+            "tag": "Phase 4 · Predictive maintenance",
+            "title": "Monitor for early failure signals",
+            "body": ("Consumption is stable across the plant — no accelerating "
+                     "signals today. AISync keeps watching every spare and will "
+                     "surface a rising trend the moment one appears."),
+        })
+
+    phases.append({
+        "tag": "Phase 5 · Closed loop",
+        "title": "Write reorder proposals back to SAP",
+        "body": ("Push AISync's replenishment proposals to SAP MM as purchase "
+                 "requisitions and sync stock, issues and lead times two-way — "
+                 "so this plan stays live with zero manual export."),
+    })
+    return {"phases": phases, "portfolio": pf}
+
+
 # ---- grounded Q&A facts for the "Ask AISync" page ------------------------
 def build_facts(rows=None, db_path=None):
     """Spare-domain fact cards for the grounded assistant (reuses its TF-IDF)."""
