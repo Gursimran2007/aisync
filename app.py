@@ -101,11 +101,15 @@ def inject_css():
         -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
       html{ scroll-behavior:smooth; }
       .stApp { background:
-        radial-gradient(1200px 640px at 100% -12%, #E7EEF7 0%, transparent 58%),
-        radial-gradient(1000px 560px at -8% 6%, #ECECF1 0%, transparent 52%),
+        /* faint engineering dot-grid — kills the 'blank paper' feel */
+        radial-gradient(circle at 1px 1px, rgba(31,78,121,.055) 1px, transparent 0),
+        /* soft ambient light blobs give the page depth and colour */
+        radial-gradient(760px 520px at 88% -6%, rgba(76,147,212,.20) 0%, transparent 60%),
+        radial-gradient(680px 520px at -6% 4%, rgba(14,124,134,.12) 0%, transparent 55%),
+        radial-gradient(900px 700px at 60% 108%, rgba(46,109,168,.14) 0%, transparent 60%),
         var(--bg);
         background-attachment:fixed;
-        background-size:140% 140%, 140% 140%, 100% 100%;
+        background-size:22px 22px, 150% 150%, 150% 150%, 150% 150%, 100% 100%;
         animation:ssDrift 26s ease-in-out infinite alternate; }
       /* fluid type scale — perfectly sized on any screen */
       h1{ font-size:clamp(1.7rem,1.2rem + 1.6vw,2.4rem); }
@@ -118,11 +122,24 @@ def inject_css():
       @keyframes ssRise{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
       @keyframes ssFadeUp{ from{opacity:0; transform:translateY(22px) scale(.985);}
                            to{opacity:1; transform:none;} }
-      @keyframes ssDrift{ from{background-position:0% 0%, 0% 0%, 0 0;}
-                          to{background-position:100% 60%, 40% 100%, 0 0;} }
+      @keyframes ssDrift{
+        from{background-position:0 0, 0% 0%, 0% 0%, 0% 0%, 0 0;}
+        to{  background-position:0 0, 100% 60%, 40% 100%, 70% 30%, 0 0;} }
       @keyframes ssShine{ 0%{transform:translateX(-120%) skewX(-18deg);}
                           60%,100%{transform:translateX(220%) skewX(-18deg);} }
       @keyframes ssPop{ from{opacity:0; transform:scale(.9);} to{opacity:1; transform:none;} }
+      /* ---- 3D motion: float + gentle axis rotation (GPU transforms, no JS) ---- */
+      @keyframes ssFloat3d{
+        0%{   transform:translateY(0)     rotateX(6deg)  rotateY(-14deg); }
+        50%{  transform:translateY(-7px)  rotateX(-4deg) rotateY(12deg); }
+        100%{ transform:translateY(0)     rotateX(6deg)  rotateY(-14deg); }
+      }
+      @keyframes ssSpin3d{ to{ transform:rotateY(360deg); } }
+      @keyframes ssTilt3d{
+        0%{   transform:perspective(900px) rotateX(3deg)  rotateY(-5deg); }
+        50%{  transform:perspective(900px) rotateX(-3deg) rotateY(5deg); }
+        100%{ transform:perspective(900px) rotateX(3deg)  rotateY(-5deg); }
+      }
       .main .block-container{ animation:ssRise .3s var(--ease) both; }
       /* stagger the primary content blocks as they enter */
       .main .block-container > div > div > [data-testid="stVerticalBlock"] > div{
@@ -172,6 +189,7 @@ def inject_css():
         padding:10px 0 26px; margin-bottom:30px;
         border-bottom:1px solid var(--hair);
         animation:ssRise .45s var(--ease) both;
+        perspective:1100px; perspective-origin:30% 40%;
       }
       .appbar .logo{
         width:62px; height:62px; border-radius:18px; flex:0 0 62px;
@@ -184,19 +202,29 @@ def inject_css():
                    0 2px 6px rgba(20,27,38,.18),
                    inset 0 1px 0 rgba(255,255,255,.34),
                    inset 0 -4px 10px rgba(0,0,0,.20);
-        transition:transform .35s var(--spring), box-shadow .35s var(--ease);
+        /* real 3D: the badge is a solid slab that floats and turns in space */
+        transform-style:preserve-3d;
+        animation:ssFloat3d 7s ease-in-out infinite;
+        transition:box-shadow .35s var(--ease), animation-play-state .35s;
       }
       .appbar .logo::before{
-        content:""; position:absolute; inset:0;
+        content:""; position:absolute; inset:0; transform:translateZ(-1px);
         background:radial-gradient(70% 55% at 50% 120%, rgba(76,147,212,.55), transparent 70%);
       }
       .appbar .logo::after{
         content:""; position:absolute; top:0; left:-20%; width:45%; height:100%;
+        transform:translateZ(6px);
         background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
         animation:ssShine 6s var(--ease) 1.4s infinite;
       }
-      .appbar .logo:hover{ transform:translateY(-3px) scale(1.06) rotate(-3deg);
-        box-shadow:var(--shadow-lg); }
+      /* lift the SVG toward the viewer so the mark sits above the slab face */
+      .appbar .logo svg{ transform:translateZ(14px); }
+      .appbar .logo:hover{
+        animation-play-state:paused;
+        transform:perspective(1100px) rotateY(24deg) rotateX(-8deg) translateZ(20px) scale(1.05);
+        box-shadow:-18px 22px 40px rgba(20,27,38,.28),
+                   0 2px 6px rgba(20,27,38,.18),
+                   inset 0 1px 0 rgba(255,255,255,.40); }
       .appbar .logo svg{ display:block; position:relative; z-index:1; }
       .appbar .brand-wrap{ display:flex; flex-direction:column; gap:2px; }
       .appbar .brand-name{
@@ -222,17 +250,30 @@ def inject_css():
         border:1px solid var(--glass-brd); border-radius:var(--radius);
         padding:20px 22px; box-shadow:var(--shadow-glass);
         position:relative; overflow:hidden;
-        transition:transform .34s var(--spring), box-shadow .34s var(--apple);
+        /* 3D-ready: give the card its own perspective + depth stacking */
+        transform:perspective(900px);
+        transform-style:preserve-3d;
+        transition:transform .4s var(--spring), box-shadow .4s var(--apple);
       }
       [data-testid="stMetric"]::before{
         content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
         background:linear-gradient(var(--accent-2), var(--accent)); opacity:.9;
+        transition:transform .4s var(--spring);
       }
-      /* subtle lift — scale 1.02 with a spring, key metrics feel physical */
+      /* 3D lift — the card tilts back in space and rises toward the viewer */
       [data-testid="stMetric"]:hover{
-        transform:translateY(-4px) scale(1.02); box-shadow:var(--shadow-lg);
+        transform:perspective(900px) rotateX(7deg) rotateY(-6deg)
+                  translateY(-6px) translateZ(24px);
+        box-shadow:-14px 26px 44px rgba(20,27,38,.16),
+                   0 8px 16px rgba(20,27,38,.08);
         border-color:rgba(255,255,255,.85);
       }
+      /* push the accent bar + value forward so depth is visible on hover */
+      [data-testid="stMetric"]:hover::before{ transform:translateZ(30px); }
+      [data-testid="stMetric"] [data-testid="stMetricValue"]{
+        transition:transform .4s var(--spring); transform:translateZ(0); }
+      [data-testid="stMetric"]:hover [data-testid="stMetricValue"]{
+        transform:translateZ(40px); }
       [data-testid="stMetricLabel"] p{
         font-size:.78rem !important; font-weight:700; letter-spacing:.055em;
         text-transform:uppercase; color:#3D4550;
@@ -328,8 +369,12 @@ def inject_css():
       .pill .pdot{ width:6px; height:6px; border-radius:50%; display:inline-block;
         margin-right:5px; vertical-align:middle; background:currentColor; }
 
-      .card:hover{ box-shadow:var(--shadow-lg); transform:translateY(-2px); }
-      .card{ transition:transform .3s var(--spring), box-shadow .3s var(--apple); }
+      .card{ transform:perspective(1000px); transform-style:preserve-3d;
+        transition:transform .4s var(--spring), box-shadow .4s var(--apple); }
+      .card:hover{ box-shadow:-12px 22px 40px rgba(20,27,38,.16),
+                   0 6px 14px rgba(20,27,38,.08);
+        transform:perspective(1000px) rotateX(5deg) rotateY(-5deg)
+                  translateY(-4px) translateZ(16px); }
 
       /* ---- premium read-only data table (sticky header, zebra, hover) ---- */
       .ptable-wrap{ border:1px solid var(--border); border-radius:var(--radius);
@@ -387,13 +432,18 @@ def inject_css():
       .brief .brief-actions{ display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
       .brief .chip{ display:inline-flex; align-items:center; gap:6px;
         background:#fff; border:1px solid #D3E2F1; border-radius:999px;
-        padding:5px 12px; font-size:.82rem; font-weight:550; color:#22354A;
+        padding:6px 13px; font-size:.82rem; font-weight:550; color:#22354A;
+        text-decoration:none; cursor:pointer;
         box-shadow:var(--shadow-sm); animation:ssPop .5s var(--spring) both;
         transition:border-color .16s var(--ease), background .16s var(--ease),
                    transform .16s var(--ease), box-shadow .16s var(--ease); }
-      .brief .chip:hover{ border-color:#B7CEEA; background:#F7FAFE;
-        transform:translateY(-1px); box-shadow:var(--shadow-md); }
+      .brief .chip:hover{ border-color:#9FC0E4; background:#EFF6FE;
+        transform:translateY(-2px); box-shadow:var(--shadow-md); color:var(--accent); }
+      .brief .chip:active{ transform:translateY(0); box-shadow:var(--shadow-sm); }
       .brief .chip b{ color:var(--accent); }
+      .brief .chip .chip-go{ font-size:1.05rem; line-height:1; color:#9FB4CC;
+        margin-left:1px; transition:transform .16s var(--ease), color .16s var(--ease); }
+      .brief .chip:hover .chip-go{ transform:translateX(3px); color:var(--accent); }
 
       /* roadmap phases with a connecting flow spine */
       .phase{ position:relative; padding:2px 0 20px 30px; }
@@ -630,8 +680,15 @@ with st.sidebar:
         f"{_esc(st.session_state.get('plant_name',''))}</div>",
         unsafe_allow_html=True)
     st.markdown("<div class='nav-head'>Menu</div>", unsafe_allow_html=True)
+    # Action-plan chips deep-link here via ?goto=<navkey>; honor it once, then
+    # drop the param so a refresh doesn't keep forcing the same page.
+    _goto = st.query_params.get("goto")
+    if _goto in NAV and st.session_state.get("nav") != _goto:
+        st.session_state["nav"] = _goto
+    if _goto is not None:
+        st.query_params.pop("goto", None)
     page = st.radio(" ", list(NAV.keys()), format_func=lambda k: NAV[k],
-                    label_visibility="collapsed")
+                    label_visibility="collapsed", key="nav")
 
     if st.session_state.get("_last_page") != page:
         db.log_event("pageview", uid=st.session_state.get("uid"),
@@ -719,8 +776,22 @@ def page_dashboard():
     # Personalized manager action band — computed for THIS plant.
     brief = spares.manager_brief(rows)
     plant = st.session_state.get("plant_name", "your plant")
+    # each action deep-links to the page that lets the manager act on it
+    _CHIP_NAV = {
+        "Clear obsolete stock": "obs",
+        "Trim excess to AI-optimal": "opt",
+        "Reorder critical spares FIRST": "opt",
+        "Plan replenishment": "opt",
+        "Investigate rising consumption": "pdm",
+    }
+    # a chip is a full-page link, so carry the session token forward (the app
+    # keeps ?s= in the URL to survive reloads) or the click would log you out.
+    _tok = st.query_params.get("s")
+    _spref = f"s={_tok}&amp;" if _tok else ""
     chips = "".join(
-        f"<span class='chip'>{_esc(label)} · <b>{_esc(val)}</b></span>"
+        f"<a class='chip' href='?{_spref}goto={_CHIP_NAV.get(label, 'dash')}' "
+        f"target='_self'>{_esc(label)} · <b>{_esc(val)}</b>"
+        f"<span class='chip-go'>&rsaquo;</span></a>"
         for label, val in brief["actions"])
     st.markdown(
         f"<div class='brief'><div class='eyebrow'>AISync · action plan for "
