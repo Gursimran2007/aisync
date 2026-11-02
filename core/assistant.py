@@ -34,6 +34,28 @@ def _tok(text: str):
     return [w for w in _WORD.findall(text.lower()) if w not in _STOP]
 
 
+# Domain synonym map: user words -> extra card vocabulary. Applied query-side
+# only (never rewrites the cards) so a question phrased in plain-English —
+# "how much cash is stuck", "which parts are scrap" — still lands on the right
+# grounded fact card. Improves recall without touching what the answer says.
+_SYN = {
+    "money": "capital cash blocked", "cash": "capital working blocked",
+    "stuck": "blocked tied", "tied": "blocked capital", "locked": "blocked",
+    "free": "release", "freeup": "release", "unlock": "release",
+    "recover": "release", "save": "release reduce",
+    "scrap": "obsolete dead write off", "old": "obsolete", "unused": "obsolete dead",
+    "buy": "reorder restock", "purchase": "reorder", "order": "reorder",
+    "procure": "reorder", "replenish": "reorder restock",
+    "fail": "predictive maintenance failure breakdown",
+    "failing": "predictive failure accelerating",
+    "breakdown": "failure predictive", "machine": "equipment",
+    "spend": "maintenance cost month", "budget": "maintenance cost",
+    "expense": "maintenance cost", "opex": "maintenance cost",
+    "risk": "shutdown stockout critical", "danger": "shutdown risk critical",
+    "surplus": "excess overstock", "overstock": "excess", "extra": "excess",
+}
+
+
 def _inr(x):
     return f"\u20b9{x:,.0f}"
 
@@ -232,8 +254,13 @@ def answer(question: str, db_path=None, cards=None) -> str:
     if not pool:
         pool = cards
 
+    # Expand the query with domain synonyms so plain-English phrasings still
+    # match the grounded card vocabulary (recall boost, answer text unchanged).
+    extra = " ".join(_SYN.get(t, "") for t in qtoks)
+    q_exp = f"{q} {extra}".strip()
+
     idx = _Tfidf([c["keywords"] for c in pool])
-    ranked = idx.rank(q)
+    ranked = idx.rank(q_exp)
     top_score = ranked[0][0]
 
     if top_score <= 0:

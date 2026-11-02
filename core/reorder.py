@@ -22,13 +22,20 @@ def reorder_for_sku(fc, on_hand, lead_time_days=7, reliability=0.95,
     rate = fc["daily_rate"]
     std = fc["daily_std"]
 
-    # unreliable suppliers -> pad effective lead time
+    # unreliable suppliers -> pad effective lead time AND carry lead-time spread.
+    # A supplier that slips 1-in-20 deliveries (reliability 0.95) has real
+    # variance in *when* stock arrives, so safety stock must cover both demand
+    # swings during the wait and the wait itself moving.
     eff_lead = lead_time_days * (1 + (1 - reliability))
+    lead_time_std = lead_time_days * (1 - reliability)     # supply-side spread
     lead_time_demand = rate * eff_lead
 
     z = _z(service_level)
-    # safety stock over lead time (demand-variability driven)
-    safety_stock = z * std * math.sqrt(max(eff_lead, 0.0))
+    # Combined safety stock (King's formula): demand variance over the lead
+    # time PLUS rate^2 * lead-time variance. Reduces to the old demand-only
+    # term when the supplier is perfectly reliable (lead_time_std -> 0).
+    safety_stock = z * math.sqrt(max(eff_lead, 0.0) * std * std
+                                 + rate * rate * lead_time_std * lead_time_std)
     reorder_point = lead_time_demand + safety_stock
 
     # order-up-to level: cover lead time + review period + safety

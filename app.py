@@ -26,6 +26,9 @@ from core.adapters import TabularAdapter, ManualAdapter
 from core.seed import seed_db, write_messy_excel
 from core.engine import build_report, CRITICALITY_SERVICE
 from core import spares
+from core import profile as user_profile
+from core import strategist
+from core import company
 
 st.set_page_config(page_title="AISync — Spare Inventory Optimization",
                    page_icon="◆", layout="wide")
@@ -77,10 +80,16 @@ def inject_css():
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
       :root{
-        /* cool-grey base — 'grey is the new black' (Apple system greys) */
-        --bg:#F5F5F7; --surface:#FFFFFF; --border:#D2D2D7; --border-2:#E6E6EB;
+        /* cool-grey base — 'grey is the new black' (Apple system greys).
+           The canvas is a real, visible grey so white cards float on it; the
+           grey is the field, blue is the highlight. */
+        --bg:#DDE0E6; --panel:#E4E7EC; --surface:#FFFFFF; --border:#BFC5CF; --border-2:#D2D7DF;
         --text:#1D1D1F; --muted:#6E6E73; --accent:#1F4E79; --accent-2:#2C6699;
         --accent-soft:#E9F0F7; --teal:#0E7C86; --display:'Space Grotesk',sans-serif;
+        /* slate-grey secondary accent — contrasts the blue so metadata,
+           eyebrows and neutral tags read grey while blue stays the highlight */
+        --slate:#7E8896; --slate-2:#586171; --slate-soft:#EEF0F3;
+        --slate-line:#CBD1DA; --slate-grad-a:#9AA3B2; --slate-grad-b:#6B7482;
         /* large, smooth corners read as 'premium app', not 'database software' */
         --radius:18px; --radius-sm:12px; --radius-lg:22px;
         /* glass material */
@@ -106,10 +115,12 @@ def inject_css():
         /* soft ambient light blobs give the page depth and colour */
         radial-gradient(760px 520px at 88% -6%, rgba(76,147,212,.20) 0%, transparent 60%),
         radial-gradient(680px 520px at -6% 4%, rgba(14,124,134,.12) 0%, transparent 55%),
-        radial-gradient(900px 700px at 60% 108%, rgba(46,109,168,.14) 0%, transparent 60%),
+        /* cool slate-grey blobs carry the grey field across the whole canvas */
+        radial-gradient(820px 620px at 8% 96%, rgba(110,122,138,.32) 0%, transparent 58%),
+        radial-gradient(980px 760px at 96% 60%, rgba(116,128,144,.26) 0%, transparent 60%),
         var(--bg);
         background-attachment:fixed;
-        background-size:22px 22px, 150% 150%, 150% 150%, 150% 150%, 100% 100%;
+        background-size:22px 22px, 150% 150%, 150% 150%, 150% 150%, 150% 150%, 100% 100%;
         animation:ssDrift 26s ease-in-out infinite alternate; }
       /* fluid type scale — perfectly sized on any screen */
       h1{ font-size:clamp(1.7rem,1.2rem + 1.6vw,2.4rem); }
@@ -123,8 +134,8 @@ def inject_css():
       @keyframes ssFadeUp{ from{opacity:0; transform:translateY(22px) scale(.985);}
                            to{opacity:1; transform:none;} }
       @keyframes ssDrift{
-        from{background-position:0 0, 0% 0%, 0% 0%, 0% 0%, 0 0;}
-        to{  background-position:0 0, 100% 60%, 40% 100%, 70% 30%, 0 0;} }
+        from{background-position:0 0, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0 0;}
+        to{  background-position:0 0, 100% 60%, 40% 100%, 25% 80%, 70% 30%, 0 0;} }
       @keyframes ssShine{ 0%{transform:translateX(-120%) skewX(-18deg);}
                           60%,100%{transform:translateX(220%) skewX(-18deg);} }
       @keyframes ssPop{ from{opacity:0; transform:scale(.9);} to{opacity:1; transform:none;} }
@@ -158,7 +169,7 @@ def inject_css():
         transform:none !important;
         width:46px !important; min-width:46px !important;
         overflow:hidden !important;
-        background:var(--surface); border-right:1px solid var(--border);
+        background:var(--panel); border-right:1px solid var(--border);
       }
       [data-testid="stSidebar"][aria-expanded="false"] [data-testid="stSidebarUserContent"]{ display:none !important; }
       [data-testid="stSidebar"][aria-expanded="false"] [data-testid="stSidebarHeader"]{
@@ -327,7 +338,8 @@ def inject_css():
         transform:none; box-shadow:none;
       }
 
-      [data-testid="stSidebar"]{ background:var(--surface); border-right:1px solid var(--border); }
+      [data-testid="stSidebar"]{ background:linear-gradient(180deg, var(--panel), #DBDFE5);
+        border-right:1px solid var(--border); }
       [data-testid="stSidebar"] .nav-head{
         font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
         color:var(--muted); padding:2px 6px 6px;
@@ -469,7 +481,7 @@ def inject_css():
         background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
         animation:ssShine 7s var(--ease) 1s infinite; }
       .brief .eyebrow{ font-size:.72rem; font-weight:800; letter-spacing:.12em;
-        text-transform:uppercase; color:var(--accent-2); }
+        text-transform:uppercase; color:var(--slate-2); }
       .brief h3{ margin:.34rem 0 .6rem; font-size:1.34rem; font-weight:700;
         letter-spacing:-.012em; color:#0E2A45; }
       .brief .brief-actions{ display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
@@ -488,6 +500,54 @@ def inject_css():
         margin-left:1px; transition:transform .16s var(--ease), color .16s var(--ease); }
       .brief .chip:hover .chip-go{ transform:translateX(3px); color:var(--accent); }
 
+      /* personalized strategy panel — ranked, reasoned plays per login */
+      .strat{ position:relative; margin:0 0 30px; border-radius:16px;
+        border:1px solid var(--slate-line); padding:20px 22px 12px;
+        background:linear-gradient(135deg, #FAFBFC 0%, #F2F4F7 60%, #EDF1F6 100%);
+        box-shadow:var(--shadow-sm); animation:ssFadeUp .6s var(--ease) both; }
+      .strat::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:4px;
+        border-radius:16px 0 0 16px;
+        background:linear-gradient(var(--slate-2), var(--accent)); }
+      .strat-head{ margin-bottom:14px; }
+      .strat-head .eyebrow{ display:flex; align-items:center; gap:8px;
+        font-size:.72rem; font-weight:800; letter-spacing:.12em;
+        text-transform:uppercase; color:var(--slate-2); }
+      .strat-head h3{ margin:.4rem 0 .5rem; font-size:1.24rem; font-weight:700;
+        letter-spacing:-.012em; color:#0E2A45; line-height:1.35; }
+      .strat-learn{ text-transform:none; letter-spacing:.02em; font-weight:700;
+        font-size:.66rem; color:var(--accent); background:var(--accent-soft);
+        border:1px solid #CFE0F0; border-radius:999px; padding:2px 9px; }
+      .strat-co{ font-size:.78rem; color:var(--slate-2); line-height:1.5;
+        border-top:1px dashed var(--slate-line); padding-top:10px; margin-top:2px; }
+      .strat-play{ display:flex; gap:14px; padding:14px 2px;
+        border-top:1px solid var(--slate-soft);
+        animation:ssFadeUp .5s var(--ease) both; }
+      .strat-play.strat-lead{ padding:16px 14px; margin:2px 0 4px;
+        border-radius:12px; border:1px solid #CFE0F0;
+        background:linear-gradient(120deg, #F3F8FD, #EAF2FB); }
+      .strat-rank{ flex:0 0 auto; width:26px; height:26px; border-radius:8px;
+        display:flex; align-items:center; justify-content:center;
+        font-size:.86rem; font-weight:800; color:var(--slate-2);
+        background:#fff; border:1px solid var(--slate-line); }
+      .strat-lead .strat-rank{ color:#fff; border:none;
+        background:linear-gradient(135deg, var(--accent), var(--accent-2)); }
+      .strat-body{ flex:1 1 auto; min-width:0; }
+      .strat-title{ display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+        font-size:.98rem; font-weight:700; color:#12283F; }
+      .strat-impact{ font-size:.7rem; font-weight:800; letter-spacing:.02em;
+        color:var(--slate-2); background:var(--slate-soft);
+        border:1px solid var(--slate-line); border-radius:999px; padding:2px 9px; }
+      .strat-lead .strat-impact{ color:var(--accent); background:var(--accent-soft);
+        border-color:#CFE0F0; }
+      .strat-thesis{ margin:.4rem 0 .5rem; font-size:.86rem; line-height:1.55;
+        color:#37485C; }
+      .strat-acts{ margin:0; padding-left:1.05rem; }
+      .strat-acts li{ font-size:.82rem; line-height:1.5; color:#4A5A6D;
+        margin:2px 0; }
+      @media (max-width:680px){
+        .strat{ padding:16px; } .strat-head h3{ font-size:1.06rem; }
+      }
+
       /* roadmap phases with a connecting flow spine */
       .phase{ position:relative; padding:2px 0 20px 30px; }
       .phase::before{ content:""; position:absolute; left:9px; top:6px;
@@ -498,7 +558,7 @@ def inject_css():
       .phase:last-child::after{ display:none; }
       .phase .card{ margin:0; }
       .phase .ph-tag{ font-size:.7rem; font-weight:700; letter-spacing:.08em;
-        text-transform:uppercase; color:var(--accent-2); }
+        text-transform:uppercase; color:var(--slate-2); }
 
       /* user-guide numbered steps */
       .step{ display:flex; gap:14px; align-items:flex-start; margin-bottom:14px;
@@ -736,6 +796,8 @@ with st.sidebar:
     if st.session_state.get("_last_page") != page:
         db.log_event("pageview", uid=st.session_state.get("uid"),
                      visitor=_visitor_id(), detail=NAV[page])
+        # Teach this login's AI persona what they focus on (page = a topic key).
+        user_profile.log_signal(page)
         st.session_state["_last_page"] = page
     st.divider()
     if st.button("Load HPL demo data", use_container_width=True,
@@ -756,6 +818,20 @@ with st.sidebar:
         if st.button("Reset workspace", use_container_width=True,
                      key="btn_reset_ws"):
             st.session_state["confirm_reset"] = True; st.rerun()
+
+    st.divider()
+    # Per-login AI persona: sets whose priorities the strategist leads with.
+    _role_keys = list(user_profile.ROLES.keys())
+    _cur_role = user_profile.get_role()
+    st.markdown("<div class='nav-head'>Your role</div>", unsafe_allow_html=True)
+    _picked_role = st.selectbox(
+        " ", _role_keys, index=_role_keys.index(_cur_role),
+        format_func=lambda r: user_profile.ROLES[r]["label"],
+        label_visibility="collapsed", key="role_select")
+    if _picked_role != _cur_role:
+        user_profile.set_role(_picked_role)
+        st.rerun()
+    st.caption(user_profile.ROLES[_picked_role]["blurb"])
 
     st.divider()
     with st.expander("Account"):
@@ -843,6 +919,30 @@ def page_dashboard():
         f"{_esc(plant)}</div><h3>{_esc(brief['headline'])}</h3>"
         f"<div class='brief-actions'>{chips}</div></div>",
         unsafe_allow_html=True)
+
+    # ---- personalized strategy: the strategist reasons over this plant's
+    # numbers and ranks the plays for whoever is logged in (role + learning).
+    persona = user_profile.persona()
+    plan = strategist.briefing(rows, persona)
+    _learn = ("<span class='strat-learn'>learning your focus</span>"
+              if persona["learned"] else "")
+    play_html = ""
+    for i, pl in enumerate(plan["plays"][:4]):
+        fit = " strat-lead" if i == 0 else ""
+        acts = "".join(f"<li>{_esc(a)}</li>" for a in pl["actions"])
+        play_html += (
+            f"<div class='strat-play{fit}'>"
+            f"<div class='strat-rank'>{i+1}</div>"
+            f"<div class='strat-body'><div class='strat-title'>{_esc(pl['title'])}"
+            f"<span class='strat-impact'>{_esc(spares.cr(pl['impact']))} impact</span>"
+            f"</div><div class='strat-thesis'>{_esc(pl['thesis'])}</div>"
+            f"<ul class='strat-acts'>{acts}</ul></div></div>")
+    st.markdown(
+        f"<div class='strat'><div class='strat-head'>"
+        f"<div class='eyebrow'>Strategy · tuned for {_esc(persona['label'])}{_learn}</div>"
+        f"<h3>{_esc(plan['headline'])}</h3>"
+        f"<div class='strat-co'>{_esc(plan['company'])}</div></div>"
+        f"{play_html}</div>", unsafe_allow_html=True)
 
     m = st.columns(4)
     m[0].metric("Working capital blocked", spares.cr(pf["total_capital"]),
@@ -1323,6 +1423,20 @@ def page_master():
 
 
 # ============================================================ PAGE: ASK
+# question keyword -> persona learning theme (see profile.TOPIC_DIMENSION).
+# Ordered so the more specific signal wins; first hit in the question is logged.
+_ASK_THEMES = {
+    "capital": "capital", "release": "capital", "cash": "capital",
+    "obsolete": "obsolete", "dead": "obsolete", "scrap": "obsolete",
+    "excess": "excess",
+    "reorder": "reorder", "buy": "reorder", "order": "reorder",
+    "forecast": "forecast", "consumption": "forecast", "demand": "forecast",
+    "maintenance": "maintenance", "failure": "maintenance", "fail": "maintenance",
+    "shutdown": "shutdown", "trip": "shutdown",
+    "risk": "risk", "critical": "risk",
+}
+
+
 def page_ask():
     st.subheader("Ask AISync")
     st.caption("Ask about blocked capital, obsolete stock, what to reorder, or "
@@ -1355,6 +1469,12 @@ def page_ask():
             cards = _facts_cached(st.session_state["uid"], DATA_SIG)
             from core.assistant import answer as _answer
             ans = _answer(question, cards=cards)
+        # teach the persona what this user asks about (question theme -> focus)
+        user_profile.log_signal("ask")
+        for _theme in _ASK_THEMES:
+            if _theme in question.lower():
+                user_profile.log_signal(_theme)
+                break
         hist.append((question, ans))
 
     if hist and st.button("Clear chat", key="ask_clear"):

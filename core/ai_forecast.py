@@ -187,28 +187,66 @@ class AIForecaster:
             return self._fallback(sku, horizon)
 
         future = self._roll_forward(base, y, level, horizon)
-        rate = float(max(future.mean(), 0.0))
+        ai_rate = float(max(future.mean(), 0.0))
 
         # residual std on in-sample one-step predictions -> realistic safety stock
         idx = np.arange(1, span)
         X = np.array([_features(base, y, i, level) for i in idx])
         insample = self.net.predict(X) * level
         resid = y[1:] - insample
-        std = float(np.std(resid)) if len(resid) > 1 else rate * 0.3
+        std = float(np.std(resid)) if len(resid) > 1 else ai_rate * 0.3
+
+        # Dynamic model trust: backtest the net against the explainable
+        # heuristic on a held-out tail and blend by inverse error, so each SKU
+        # ends up using whichever model (or mix) has actually been more accurate
+        # for it — not a blanket "always trust the net".
+        rate, method, confidence = self._blend(base, y, level, ai_rate, horizon)
 
         analysis = self._analysis(base, y, level, rate)
+        analysis["confidence"] = confidence
+        expl = (f"{analysis['summary']} "
+                f"Backtested confidence {confidence*100:.0f}%.")
         return {
-            "method": "ai_neural",
+            "method": method,
             "daily_rate": round(rate, 3),
             "daily_std": round(std, 3),
             "horizon_qty": round(rate * horizon, 2),
             "horizon_days": horizon,
-            "explanation": analysis["summary"],
+            "confidence": confidence,
+            "explanation": expl,
             "ai_analysis": analysis,
             "n_points": int((y > 0).sum()),
             "span_days": span,
             "intermittent": bool((y <= 0).mean() >= 0.4),
         }
+
+    def _blend(self, base, y, level, ai_rate, horizon):
+        """Backtest net vs heuristic on a held-out tail; inverse-error blend.
+
+        Returns (blended_rate, method_label, confidence[0..1]). Confidence is
+        how close the better model got on the holdout, relative to demand level
+        — a genuine, per-SKU accuracy read rather than a fixed assumption."""
+        span = len(y)
+        h = min(7, max(2, span // 4))            # holdout tail length
+        if span - h < MIN_POINTS:
+            return ai_rate, "ai_neural", 0.6      # not enough left to validate
+        hist, hold = y[:span - h], y[span - h:]
+        actual = float(hold.mean())
+
+        net_pred = self._roll_forward(base, hist, level, h)
+        ai_err = abs(float(net_pred.mean()) - actual)
+
+        hsales = [{"date": (base + timedelta(days=i)).isoformat(), "qty": q}
+                  for i, q in enumerate(hist)]
+        heur_rate = _heuristic_forecast(hsales, h)["daily_rate"]
+        heur_err = abs(heur_rate - actual)
+
+        eps = max(actual, 0.5) * 0.05 + 1e-6      # avoid divide-by-zero
+        wa, wh = 1.0 / (ai_err + eps), 1.0 / (heur_err + eps)
+        blended = (wa * ai_rate + wh * heur_rate) / (wa + wh)
+        method = "ai_ensemble" if wh > wa * 0.25 else "ai_neural"
+        confidence = max(0.0, min(1.0, 1.0 - min(ai_err, heur_err) / max(actual, 0.5)))
+        return float(blended), method, round(confidence, 2)
 
     def _analysis(self, base, y, level, rate):
         dow_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]

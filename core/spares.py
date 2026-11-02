@@ -17,6 +17,7 @@ from datetime import date, datetime
 
 from .engine import build_report, CRITICALITY_SERVICE
 from .assistant import answer as _answer, _tok
+from . import company as _company
 
 OBSOLETE_YEARS = 5          # no issue in >5 yrs => dead capital (HPL: 27% of stock)
 CRIT_WEIGHT = {"critical": 3, "essential": 2, "non-critical": 1}
@@ -110,6 +111,20 @@ def analyze(report=None, service_by_sku=None, db_path=None):
         # above the AI-optimal max level.
         release_value = capital if obsolete else excess_value
 
+        # Graded obsolescence signal (0..1): blends how old the last movement is
+        # with how near-zero recent consumption has fallen. Lets the UI flag a
+        # spare as "trending obsolete" BEFORE it crosses the hard 5-year line —
+        # earlier and more accurate than an age-only boolean. Critical strategic
+        # spares are exempt (they sit idle by design).
+        if crit == "critical":
+            obsolescence_score = 0.0
+        else:
+            age_score = min((age or 0) / OBSOLETE_YEARS, 1.0) if age is not None else 0.0
+            move_score = 1.0 - min(rate / (DEAD_RATE * 10), 1.0)   # ~0 if moving
+            obsolescence_score = round(min(0.6 * age_score + 0.4 * move_score, 1.0), 2)
+        slow_moving = (not obsolete and crit != "critical"
+                       and obsolescence_score >= 0.5 and rate <= DEAD_RATE * 5)
+
         score = CRIT_WEIGHT.get(crit, 2) * RISK_WEIGHT.get(risk, 1)
 
         rows.append({
@@ -125,6 +140,8 @@ def analyze(report=None, service_by_sku=None, db_path=None):
             "excess_units": excess_units,
             "excess_value": excess_value,
             "release_value": release_value,
+            "obsolescence_score": obsolescence_score,
+            "slow_moving": slow_moving,
             "shutdown_score": score,
             "shutdown_risk": _shutdown_label(score),
         })
@@ -182,9 +199,17 @@ def excess_rows(rows):
                   key=lambda r: -r["excess_value"])
 
 
-def predictive_maintenance(rows, min_momentum=12.0):
+def predictive_maintenance(rows, min_score=10.0):
     """Spares whose consumption is accelerating — an early signal that the
-    equipment they serve is heading toward failure. Reorder BEFORE breakdown."""
+    equipment they serve is heading toward failure. Reorder BEFORE breakdown.
+
+    The signal blends three model-derived cues into one score instead of
+    tripping on a single metric:
+      * momentum   — last 7 days vs the prior 3 weeks
+      * trend      — first vs last third of history (%/month)
+      * consistency— coefficient of variation, so a sustained rise outranks a
+                     one-off spike (fewer false alarms)
+    and weights it up for more critical equipment."""
     out = []
     for r in rows:
         a = r["forecast"].get("ai_analysis")
@@ -192,9 +217,20 @@ def predictive_maintenance(rows, min_momentum=12.0):
             continue
         mom = a.get("momentum_pct", 0) or 0
         trend = a.get("trend_pct_month", 0) or 0
-        if mom >= min_momentum or trend >= min_momentum:
-            out.append({**r, "momentum_pct": mom, "trend_pct_month": trend})
-    return sorted(out, key=lambda r: -(r["momentum_pct"] + r["trend_pct_month"]))
+        if mom <= 0 and trend <= 0:                 # not accelerating
+            continue
+        rate = float(r["reorder"]["daily_rate"] or 0)
+        std = float(r["forecast"].get("daily_std", 0) or 0)
+        cv = (std / rate) if rate > 1e-6 else 0.0
+        consistency = 1.0 / (1.0 + 0.5 * cv)        # spiky demand -> discount
+        crit_w = {"critical": 1.3, "essential": 1.0,
+                  "non-critical": 0.8}.get((r.get("criticality") or "essential").lower(), 1.0)
+        raw = 0.6 * max(mom, 0) + 0.4 * max(trend, 0)
+        pdm_score = raw * consistency * crit_w
+        if pdm_score >= min_score:
+            out.append({**r, "momentum_pct": mom, "trend_pct_month": trend,
+                        "pdm_score": round(pdm_score, 1)})
+    return sorted(out, key=lambda r: -r["pdm_score"])
 
 
 # ---- manager brief: the "what do I do this week" headline ----------------
@@ -367,7 +403,9 @@ def build_facts(rows=None, db_path=None):
     if rows is None:
         rows = analyze(db_path=db_path)
     pf = portfolio(rows)
-    cards = []
+    # Grounded company knowledge so "who is HPL / what do they make / why does
+    # a critical spare matter" answers from real facts, not the spare table.
+    cards = list(_company.facts_cards())
 
     cards.append({
         "keywords": "total capital blocked working spares inventory value "
